@@ -3,6 +3,7 @@ package server
 import (
 	"regulation/internal/ro"
 	"regulation/server/handlers/account"
+	advisorhandler "regulation/server/handlers/advisor"
 	"regulation/server/handlers/financial"
 	"regulation/server/handlers/plaid"
 	"regulation/server/middleware"
@@ -45,5 +46,12 @@ func (s *Server) route() {
 
 		// All financial routes require authentication
 		financialGroup.Get("/accounts", auth.Handle, ro.WrapHandler3(handler.GetAccounts))
+	}
+
+	advisorGroup := s.app.Group("/advisor")
+	{
+		handler := advisorhandler.New(s.db, s.advisorService)
+		advisorGroup.Post("/budget-plan/test", ro.WrapHandler(handler.BudgetPlan))
+		advisorGroup.Post("/budget-plan/history", ro.WrapHandler(handler.BudgetPlanFromHistory))
 	}
 }

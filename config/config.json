@@ -13,5 +13,14 @@
     "database": 0,
     "password": ""
   },
+  "plaid": {
+    "client_id": "",
+    "secret": "",
+    "environment": "sandbox",
+    "use_mock": true
+  },
+  "openai": {
+    "api_key": "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"
+  },
   "debug": true
 }

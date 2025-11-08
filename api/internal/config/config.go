@@ -22,9 +22,10 @@ const (
 
 // Config represents the application configuration
 type Config struct {
-	DB    *DB          `json:"database"`
-	Redis *Redis       `json:"redis"`
-	Plaid *PlaidConfig `json:"plaid"`
+	DB     *DB          `json:"database"`
+	Redis  *Redis       `json:"redis"`
+	Plaid  *PlaidConfig `json:"plaid"`
+	OpenAI *OpenAI      `json:"openai"`
 
 	Debug bool `json:"debug"`
 
@@ -113,6 +114,10 @@ func LoadConfig() (*Config, error) {
 	var config Config
 	if err = json.Unmarshal(configFile, &config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config file: %w", err)
+	}
+
+	if config.Plaid == nil {
+		config.Plaid = &PlaidConfig{}
 	}
 
 	if err = config.Validate(); err != nil {

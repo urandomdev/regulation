@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"regulation/internal/advisor"
 	"regulation/internal/config"
 	"regulation/internal/ent"
 	"regulation/internal/session"
@@ -35,6 +36,7 @@ type Server struct {
 	config *config.Config
 
 	db             *ent.Client
+	advisorService *advisor.Service
 	cache          rueidis.Client
 	cacheLock      rueidislock.Locker
 	sessionManager *session.Manager
@@ -102,14 +104,29 @@ func (s *Server) init(ctx context.Context) error {
 	// Initialize session manager
 	s.sessionManager = session.NewManager(s.cache)
 
+	// Initialize AI advisor using config
+	apiKey := ""
+	if s.config.OpenAI != nil {
+		apiKey = s.config.OpenAI.APIKey
+	}
+	s.advisorService = advisor.NewService(apiKey)
+	if apiKey == "" {
+		s.logger.Warn().Msg("openai.api_key missing in config; GPT-5 budget endpoint will respond with 500")
+	}
+
 	if err = s.setupDatabase(ctx); err != nil {
 		return fmt.Errorf("failed to setup database: %w", err)
 	}
 
 	// Initialize Plaid client
-	s.plaidClient, err = plaid.NewPlaidClient(s.config.Plaid)
-	if err != nil {
-		return fmt.Errorf("failed to create plaid client: %w", err)
+	if s.config.Plaid == nil || s.config.Plaid.UseMockClient() {
+		s.logger.Warn().Str("component", "plaid").Msg("using mock plaid client; no network calls will be made")
+		s.plaidClient = plaid.NewMockPlaidClient()
+	} else {
+		s.plaidClient, err = plaid.NewPlaidClient(s.config.Plaid)
+		if err != nil {
+			return fmt.Errorf("failed to create plaid client: %w", err)
+		}
 	}
 
 	// Initialize sync service

@@ -3,6 +3,8 @@ package config
 import (
 	"errors"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // PlaidConfig holds Plaid API configuration
@@ -10,12 +12,17 @@ type PlaidConfig struct {
 	ClientID    string `json:"client_id"`
 	Secret      string `json:"secret"`
 	Environment string `json:"environment"` // sandbox, development, production
+	UseMock     bool   `json:"use_mock"`
 }
 
 // Validate ensures PlaidConfig has valid values
 func (p *PlaidConfig) Validate() error {
 	if p == nil {
 		return errors.New("plaid config is nil")
+	}
+
+	if p.UseMockClient() {
+		return nil
 	}
 
 	// Allow environment variable overrides
@@ -79,4 +86,24 @@ func (p *PlaidConfig) GetEnvironment() string {
 		return envEnv
 	}
 	return p.Environment
+}
+
+// UseMockClient reports whether the Plaid mock client should be used.
+func (p *PlaidConfig) UseMockClient() bool {
+	if mock, ok := parseBoolEnv("PLAID_USE_MOCK"); ok {
+		return mock
+	}
+	if p == nil {
+		return false
+	}
+	return p.UseMock
+}
+
+func parseBoolEnv(key string) (bool, bool) {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		if parsed, err := strconv.ParseBool(value); err == nil {
+			return parsed, true
+		}
+	}
+	return false, false
 }

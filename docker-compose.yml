@@ -37,6 +37,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    pull_policy: build
     container_name: regulation-api
     restart: unless-stopped
     ports:
