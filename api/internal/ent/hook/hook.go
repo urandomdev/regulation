@@ -8,6 +8,54 @@ import (
 	"regulation/internal/ent"
 )
 
+// The AccountFunc type is an adapter to allow the use of ordinary
+// function as Account mutator.
+type AccountFunc func(context.Context, *ent.AccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccountMutation", m)
+}
+
+// The ItemFunc type is an adapter to allow the use of ordinary
+// function as Item mutator.
+type ItemFunc func(context.Context, *ent.ItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ItemMutation", m)
+}
+
+// The SyncCursorFunc type is an adapter to allow the use of ordinary
+// function as SyncCursor mutator.
+type SyncCursorFunc func(context.Context, *ent.SyncCursorMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SyncCursorFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SyncCursorMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SyncCursorMutation", m)
+}
+
+// The TransactionFunc type is an adapter to allow the use of ordinary
+// function as Transaction mutator.
+type TransactionFunc func(context.Context, *ent.TransactionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TransactionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TransactionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TransactionMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)
@@ -18,30 +66,6 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
-}
-
-// The VirtualAccountFunc type is an adapter to allow the use of ordinary
-// function as VirtualAccount mutator.
-type VirtualAccountFunc func(context.Context, *ent.VirtualAccountMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f VirtualAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.VirtualAccountMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.VirtualAccountMutation", m)
-}
-
-// The VirtualAccountTransactionFunc type is an adapter to allow the use of ordinary
-// function as VirtualAccountTransaction mutator.
-type VirtualAccountTransactionFunc func(context.Context, *ent.VirtualAccountTransactionMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f VirtualAccountTransactionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.VirtualAccountTransactionMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.VirtualAccountTransactionMutation", m)
 }
 
 // Condition is a hook condition function.

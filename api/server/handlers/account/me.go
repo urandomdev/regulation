@@ -1,7 +1,7 @@
 package account
 
 import (
-	"regulation/internal/request_context"
+	"regulation/server/services/request_context"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -10,7 +10,7 @@ import (
 // Me returns the currently authenticated user's information
 // @Route GET /account/me
 func (h *Handler) Me(ctx fiber.Ctx) (*UserResponse, error) {
-	user := request_context.MustGetUser(ctx)
+	user := request_context.User(ctx)
 
 	return &UserResponse{
 		ID:       user.ID,

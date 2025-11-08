@@ -8,6 +8,7 @@ import (
 	"regulation/internal/config"
 	"regulation/internal/ent"
 	"regulation/internal/session"
+	"regulation/server/services/plaid"
 
 	"github.com/fxamacker/cbor/v2"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -37,6 +38,9 @@ type Server struct {
 	cache          rueidis.Client
 	cacheLock      rueidislock.Locker
 	sessionManager *session.Manager
+
+	plaidClient plaid.PlaidClient
+	syncService *plaid.SyncService
 
 	logger zerolog.Logger
 }
@@ -101,6 +105,15 @@ func (s *Server) init(ctx context.Context) error {
 	if err = s.setupDatabase(ctx); err != nil {
 		return fmt.Errorf("failed to setup database: %w", err)
 	}
+
+	// Initialize Plaid client
+	s.plaidClient, err = plaid.NewPlaidClient(s.config.Plaid)
+	if err != nil {
+		return fmt.Errorf("failed to create plaid client: %w", err)
+	}
+
+	// Initialize sync service
+	s.syncService = plaid.NewSyncService(s.plaidClient, s.db)
 
 	s.route()
 

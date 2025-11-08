@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regulation/internal/ent/account"
+	"regulation/internal/ent/item"
+	"regulation/internal/ent/synccursor"
+	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
-	"regulation/internal/ent/virtualaccount"
-	"regulation/internal/ent/virtualaccounttransaction"
 	"sync"
 
 	"entgo.io/ent"
@@ -75,9 +77,11 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			user.Table:                      user.ValidColumn,
-			virtualaccount.Table:            virtualaccount.ValidColumn,
-			virtualaccounttransaction.Table: virtualaccounttransaction.ValidColumn,
+			account.Table:     account.ValidColumn,
+			item.Table:        item.ValidColumn,
+			synccursor.Table:  synccursor.ValidColumn,
+			transaction.Table: transaction.ValidColumn,
+			user.Table:        user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

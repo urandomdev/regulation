@@ -5,8 +5,8 @@ import (
 
 	"regulation/internal/ent"
 	"regulation/internal/protocol"
-	"regulation/internal/request_context"
 	"regulation/internal/session"
+	"regulation/server/services/request_context"
 
 	"github.com/gofiber/fiber/v3"
 )

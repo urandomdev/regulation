@@ -33,30 +33,23 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
-	// Accounts holds the value of the accounts edge.
-	Accounts []*VirtualAccount `json:"accounts,omitempty"`
 	// User holds the value of the user edge.
 	User []*User `json:"user,omitempty"`
 	// CustodyAccount holds the value of the custody_account edge.
 	CustodyAccount *User `json:"custody_account,omitempty"`
+	// Items holds the value of the items edge.
+	Items []*Item `json:"items,omitempty"`
+	// Accounts holds the value of the accounts edge.
+	Accounts []*Account `json:"accounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
-}
-
-// AccountsOrErr returns the Accounts value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) AccountsOrErr() ([]*VirtualAccount, error) {
-	if e.loadedTypes[0] {
-		return e.Accounts, nil
-	}
-	return nil, &NotLoadedError{edge: "accounts"}
+	loadedTypes [4]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) UserOrErr() ([]*User, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		return e.User, nil
 	}
 	return nil, &NotLoadedError{edge: "user"}
@@ -67,10 +60,28 @@ func (e UserEdges) UserOrErr() ([]*User, error) {
 func (e UserEdges) CustodyAccountOrErr() (*User, error) {
 	if e.CustodyAccount != nil {
 		return e.CustodyAccount, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "custody_account"}
+}
+
+// ItemsOrErr returns the Items value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ItemsOrErr() ([]*Item, error) {
+	if e.loadedTypes[2] {
+		return e.Items, nil
+	}
+	return nil, &NotLoadedError{edge: "items"}
+}
+
+// AccountsOrErr returns the Accounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) AccountsOrErr() ([]*Account, error) {
+	if e.loadedTypes[3] {
+		return e.Accounts, nil
+	}
+	return nil, &NotLoadedError{edge: "accounts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -145,11 +156,6 @@ func (_m *User) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryAccounts queries the "accounts" edge of the User entity.
-func (_m *User) QueryAccounts() *VirtualAccountQuery {
-	return NewUserClient(_m.config).QueryAccounts(_m)
-}
-
 // QueryUser queries the "user" edge of the User entity.
 func (_m *User) QueryUser() *UserQuery {
 	return NewUserClient(_m.config).QueryUser(_m)
@@ -158,6 +164,16 @@ func (_m *User) QueryUser() *UserQuery {
 // QueryCustodyAccount queries the "custody_account" edge of the User entity.
 func (_m *User) QueryCustodyAccount() *UserQuery {
 	return NewUserClient(_m.config).QueryCustodyAccount(_m)
+}
+
+// QueryItems queries the "items" edge of the User entity.
+func (_m *User) QueryItems() *ItemQuery {
+	return NewUserClient(_m.config).QueryItems(_m)
+}
+
+// QueryAccounts queries the "accounts" edge of the User entity.
+func (_m *User) QueryAccounts() *AccountQuery {
+	return NewUserClient(_m.config).QueryAccounts(_m)
 }
 
 // Update returns a builder for updating this User.

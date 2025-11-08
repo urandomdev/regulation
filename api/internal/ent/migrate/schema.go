@@ -8,6 +8,176 @@ import (
 )
 
 var (
+	// AccountsColumns holds the columns for the "accounts" table.
+	AccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "plaid_id", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"checking", "savings", "credit", "other"}, Default: "checking"},
+		{Name: "subtype", Type: field.TypeString, Nullable: true},
+		{Name: "mask", Type: field.TypeString, Nullable: true},
+		{Name: "current_balance", Type: field.TypeInt64, Default: 0},
+		{Name: "available_balance", Type: field.TypeInt64, Nullable: true},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "item_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// AccountsTable holds the schema information for the "accounts" table.
+	AccountsTable = &schema.Table{
+		Name:       "accounts",
+		Columns:    AccountsColumns,
+		PrimaryKey: []*schema.Column{AccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "accounts_items_accounts",
+				Columns:    []*schema.Column{AccountsColumns[11]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "accounts_users_accounts",
+				Columns:    []*schema.Column{AccountsColumns[12]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "account_user_id_is_active",
+				Unique:  false,
+				Columns: []*schema.Column{AccountsColumns[12], AccountsColumns[8]},
+			},
+			{
+				Name:    "account_plaid_id",
+				Unique:  true,
+				Columns: []*schema.Column{AccountsColumns[1]},
+			},
+			{
+				Name:    "account_item_id",
+				Unique:  false,
+				Columns: []*schema.Column{AccountsColumns[11]},
+			},
+		},
+	}
+	// ItemsColumns holds the columns for the "items" table.
+	ItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "plaid_id", Type: field.TypeString, Unique: true},
+		{Name: "access_token", Type: field.TypeString},
+		{Name: "institution_name", Type: field.TypeString},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// ItemsTable holds the schema information for the "items" table.
+	ItemsTable = &schema.Table{
+		Name:       "items",
+		Columns:    ItemsColumns,
+		PrimaryKey: []*schema.Column{ItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "items_users_items",
+				Columns:    []*schema.Column{ItemsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "item_user_id_is_active",
+				Unique:  false,
+				Columns: []*schema.Column{ItemsColumns[7], ItemsColumns[4]},
+			},
+			{
+				Name:    "item_plaid_id",
+				Unique:  true,
+				Columns: []*schema.Column{ItemsColumns[1]},
+			},
+		},
+	}
+	// SyncCursorsColumns holds the columns for the "sync_cursors" table.
+	SyncCursorsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "cursor", Type: field.TypeString, Default: ""},
+		{Name: "last_sync_at", Type: field.TypeTime},
+		{Name: "item_id", Type: field.TypeUUID, Unique: true},
+	}
+	// SyncCursorsTable holds the schema information for the "sync_cursors" table.
+	SyncCursorsTable = &schema.Table{
+		Name:       "sync_cursors",
+		Columns:    SyncCursorsColumns,
+		PrimaryKey: []*schema.Column{SyncCursorsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sync_cursors_items_sync_cursor",
+				Columns:    []*schema.Column{SyncCursorsColumns[3]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "synccursor_item_id",
+				Unique:  true,
+				Columns: []*schema.Column{SyncCursorsColumns[3]},
+			},
+		},
+	}
+	// TransactionsColumns holds the columns for the "transactions" table.
+	TransactionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "plaid_id", Type: field.TypeString, Unique: true},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "date", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+		{Name: "merchant_name", Type: field.TypeString, Nullable: true},
+		{Name: "category", Type: field.TypeString, Default: "Misc"},
+		{Name: "plaid_categories", Type: field.TypeJSON, Nullable: true},
+		{Name: "pending", Type: field.TypeBool, Default: false},
+		{Name: "payment_channel", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "account_id", Type: field.TypeUUID},
+	}
+	// TransactionsTable holds the schema information for the "transactions" table.
+	TransactionsTable = &schema.Table{
+		Name:       "transactions",
+		Columns:    TransactionsColumns,
+		PrimaryKey: []*schema.Column{TransactionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "transactions_accounts_transactions",
+				Columns:    []*schema.Column{TransactionsColumns[12]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "transaction_account_id_date",
+				Unique:  false,
+				Columns: []*schema.Column{TransactionsColumns[12], TransactionsColumns[3]},
+			},
+			{
+				Name:    "transaction_plaid_id",
+				Unique:  true,
+				Columns: []*schema.Column{TransactionsColumns[1]},
+			},
+			{
+				Name:    "transaction_category",
+				Unique:  false,
+				Columns: []*schema.Column{TransactionsColumns[6]},
+			},
+			{
+				Name:    "transaction_pending",
+				Unique:  false,
+				Columns: []*schema.Column{TransactionsColumns[8]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -30,60 +200,21 @@ var (
 			},
 		},
 	}
-	// VirtualAccountsColumns holds the columns for the "virtual_accounts" table.
-	VirtualAccountsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"checking", "saving"}},
-		{Name: "name", Type: field.TypeString},
-		{Name: "dollars", Type: field.TypeInt},
-		{Name: "cents", Type: field.TypeInt},
-		{Name: "user_id", Type: field.TypeUUID},
-	}
-	// VirtualAccountsTable holds the schema information for the "virtual_accounts" table.
-	VirtualAccountsTable = &schema.Table{
-		Name:       "virtual_accounts",
-		Columns:    VirtualAccountsColumns,
-		PrimaryKey: []*schema.Column{VirtualAccountsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "virtual_accounts_users_accounts",
-				Columns:    []*schema.Column{VirtualAccountsColumns[5]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-	}
-	// VirtualAccountTransactionsColumns holds the columns for the "virtual_account_transactions" table.
-	VirtualAccountTransactionsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
-		{Name: "adjusted_dollars", Type: field.TypeInt},
-		{Name: "adjusted_cents", Type: field.TypeInt},
-		{Name: "virtual_account_id", Type: field.TypeUUID},
-	}
-	// VirtualAccountTransactionsTable holds the schema information for the "virtual_account_transactions" table.
-	VirtualAccountTransactionsTable = &schema.Table{
-		Name:       "virtual_account_transactions",
-		Columns:    VirtualAccountTransactionsColumns,
-		PrimaryKey: []*schema.Column{VirtualAccountTransactionsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "virtual_account_transactions_virtual_accounts_transactions",
-				Columns:    []*schema.Column{VirtualAccountTransactionsColumns[3]},
-				RefColumns: []*schema.Column{VirtualAccountsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AccountsTable,
+		ItemsTable,
+		SyncCursorsTable,
+		TransactionsTable,
 		UsersTable,
-		VirtualAccountsTable,
-		VirtualAccountTransactionsTable,
 	}
 )
 
 func init() {
+	AccountsTable.ForeignKeys[0].RefTable = ItemsTable
+	AccountsTable.ForeignKeys[1].RefTable = UsersTable
+	ItemsTable.ForeignKeys[0].RefTable = UsersTable
+	SyncCursorsTable.ForeignKeys[0].RefTable = ItemsTable
+	TransactionsTable.ForeignKeys[0].RefTable = AccountsTable
 	UsersTable.ForeignKeys[0].RefTable = UsersTable
-	VirtualAccountsTable.ForeignKeys[0].RefTable = UsersTable
-	VirtualAccountTransactionsTable.ForeignKeys[0].RefTable = VirtualAccountsTable
 }

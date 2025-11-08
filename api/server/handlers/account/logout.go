@@ -3,8 +3,8 @@ package account
 import (
 	"fmt"
 
-	"regulation/internal/request_context"
 	"regulation/server/middleware"
+	"regulation/server/services/request_context"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -12,13 +12,7 @@ import (
 // Logout destroys the current session
 // @Route POST /account/logout
 func (h *Handler) Logout(ctx fiber.Ctx) error {
-	sess, ok := request_context.GetSession(ctx)
-	if !ok {
-		// Session not found in context, but cookie might still be set
-		// Clear the cookie anyway
-		middleware.ClearSessionCookie(ctx)
-		return nil
-	}
+	sess := request_context.Session(ctx)
 
 	// Delete session from Redis
 	if err := h.sessionManager.Delete(ctx, sess.ID); err != nil {

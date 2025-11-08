@@ -11,9 +11,11 @@ import (
 
 	"regulation/internal/ent/migrate"
 
+	"regulation/internal/ent/account"
+	"regulation/internal/ent/item"
+	"regulation/internal/ent/synccursor"
+	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
-	"regulation/internal/ent/virtualaccount"
-	"regulation/internal/ent/virtualaccounttransaction"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -29,12 +31,16 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Account is the client for interacting with the Account builders.
+	Account *AccountClient
+	// Item is the client for interacting with the Item builders.
+	Item *ItemClient
+	// SyncCursor is the client for interacting with the SyncCursor builders.
+	SyncCursor *SyncCursorClient
+	// Transaction is the client for interacting with the Transaction builders.
+	Transaction *TransactionClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
-	// VirtualAccount is the client for interacting with the VirtualAccount builders.
-	VirtualAccount *VirtualAccountClient
-	// VirtualAccountTransaction is the client for interacting with the VirtualAccountTransaction builders.
-	VirtualAccountTransaction *VirtualAccountTransactionClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -46,9 +52,11 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Account = NewAccountClient(c.config)
+	c.Item = NewItemClient(c.config)
+	c.SyncCursor = NewSyncCursorClient(c.config)
+	c.Transaction = NewTransactionClient(c.config)
 	c.User = NewUserClient(c.config)
-	c.VirtualAccount = NewVirtualAccountClient(c.config)
-	c.VirtualAccountTransaction = NewVirtualAccountTransactionClient(c.config)
 }
 
 type (
@@ -139,11 +147,13 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                       ctx,
-		config:                    cfg,
-		User:                      NewUserClient(cfg),
-		VirtualAccount:            NewVirtualAccountClient(cfg),
-		VirtualAccountTransaction: NewVirtualAccountTransactionClient(cfg),
+		ctx:         ctx,
+		config:      cfg,
+		Account:     NewAccountClient(cfg),
+		Item:        NewItemClient(cfg),
+		SyncCursor:  NewSyncCursorClient(cfg),
+		Transaction: NewTransactionClient(cfg),
+		User:        NewUserClient(cfg),
 	}, nil
 }
 
@@ -161,18 +171,20 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                       ctx,
-		config:                    cfg,
-		User:                      NewUserClient(cfg),
-		VirtualAccount:            NewVirtualAccountClient(cfg),
-		VirtualAccountTransaction: NewVirtualAccountTransactionClient(cfg),
+		ctx:         ctx,
+		config:      cfg,
+		Account:     NewAccountClient(cfg),
+		Item:        NewItemClient(cfg),
+		SyncCursor:  NewSyncCursorClient(cfg),
+		Transaction: NewTransactionClient(cfg),
+		User:        NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		User.
+//		Account.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -194,30 +206,698 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Account.Use(hooks...)
+	c.Item.Use(hooks...)
+	c.SyncCursor.Use(hooks...)
+	c.Transaction.Use(hooks...)
 	c.User.Use(hooks...)
-	c.VirtualAccount.Use(hooks...)
-	c.VirtualAccountTransaction.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.Account.Intercept(interceptors...)
+	c.Item.Intercept(interceptors...)
+	c.SyncCursor.Intercept(interceptors...)
+	c.Transaction.Intercept(interceptors...)
 	c.User.Intercept(interceptors...)
-	c.VirtualAccount.Intercept(interceptors...)
-	c.VirtualAccountTransaction.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AccountMutation:
+		return c.Account.mutate(ctx, m)
+	case *ItemMutation:
+		return c.Item.mutate(ctx, m)
+	case *SyncCursorMutation:
+		return c.SyncCursor.mutate(ctx, m)
+	case *TransactionMutation:
+		return c.Transaction.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
-	case *VirtualAccountMutation:
-		return c.VirtualAccount.mutate(ctx, m)
-	case *VirtualAccountTransactionMutation:
-		return c.VirtualAccountTransaction.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AccountClient is a client for the Account schema.
+type AccountClient struct {
+	config
+}
+
+// NewAccountClient returns a client for the Account from the given config.
+func NewAccountClient(c config) *AccountClient {
+	return &AccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `account.Hooks(f(g(h())))`.
+func (c *AccountClient) Use(hooks ...Hook) {
+	c.hooks.Account = append(c.hooks.Account, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `account.Intercept(f(g(h())))`.
+func (c *AccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Account = append(c.inters.Account, interceptors...)
+}
+
+// Create returns a builder for creating a Account entity.
+func (c *AccountClient) Create() *AccountCreate {
+	mutation := newAccountMutation(c.config, OpCreate)
+	return &AccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Account entities.
+func (c *AccountClient) CreateBulk(builders ...*AccountCreate) *AccountCreateBulk {
+	return &AccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AccountClient) MapCreateBulk(slice any, setFunc func(*AccountCreate, int)) *AccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AccountCreateBulk{err: fmt.Errorf("calling to AccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Account.
+func (c *AccountClient) Update() *AccountUpdate {
+	mutation := newAccountMutation(c.config, OpUpdate)
+	return &AccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountClient) UpdateOne(_m *Account) *AccountUpdateOne {
+	mutation := newAccountMutation(c.config, OpUpdateOne, withAccount(_m))
+	return &AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountClient) UpdateOneID(id uuid.UUID) *AccountUpdateOne {
+	mutation := newAccountMutation(c.config, OpUpdateOne, withAccountID(id))
+	return &AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Account.
+func (c *AccountClient) Delete() *AccountDelete {
+	mutation := newAccountMutation(c.config, OpDelete)
+	return &AccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AccountClient) DeleteOne(_m *Account) *AccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AccountClient) DeleteOneID(id uuid.UUID) *AccountDeleteOne {
+	builder := c.Delete().Where(account.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountDeleteOne{builder}
+}
+
+// Query returns a query builder for Account.
+func (c *AccountClient) Query() *AccountQuery {
+	return &AccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Account entity by its id.
+func (c *AccountClient) Get(ctx context.Context, id uuid.UUID) (*Account, error) {
+	return c.Query().Where(account.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountClient) GetX(ctx context.Context, id uuid.UUID) *Account {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryItem queries the item edge of a Account.
+func (c *AccountClient) QueryItem(_m *Account) *ItemQuery {
+	query := (&ItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, account.ItemTable, account.ItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a Account.
+func (c *AccountClient) QueryUser(_m *Account) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, account.UserTable, account.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTransactions queries the transactions edge of a Account.
+func (c *AccountClient) QueryTransactions(_m *Account) *TransactionQuery {
+	query := (&TransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(transaction.Table, transaction.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.TransactionsTable, account.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AccountClient) Hooks() []Hook {
+	return c.hooks.Account
+}
+
+// Interceptors returns the client interceptors.
+func (c *AccountClient) Interceptors() []Interceptor {
+	return c.inters.Account
+}
+
+func (c *AccountClient) mutate(ctx context.Context, m *AccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Account mutation op: %q", m.Op())
+	}
+}
+
+// ItemClient is a client for the Item schema.
+type ItemClient struct {
+	config
+}
+
+// NewItemClient returns a client for the Item from the given config.
+func NewItemClient(c config) *ItemClient {
+	return &ItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `item.Hooks(f(g(h())))`.
+func (c *ItemClient) Use(hooks ...Hook) {
+	c.hooks.Item = append(c.hooks.Item, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `item.Intercept(f(g(h())))`.
+func (c *ItemClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Item = append(c.inters.Item, interceptors...)
+}
+
+// Create returns a builder for creating a Item entity.
+func (c *ItemClient) Create() *ItemCreate {
+	mutation := newItemMutation(c.config, OpCreate)
+	return &ItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Item entities.
+func (c *ItemClient) CreateBulk(builders ...*ItemCreate) *ItemCreateBulk {
+	return &ItemCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ItemClient) MapCreateBulk(slice any, setFunc func(*ItemCreate, int)) *ItemCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ItemCreateBulk{err: fmt.Errorf("calling to ItemClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ItemCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Item.
+func (c *ItemClient) Update() *ItemUpdate {
+	mutation := newItemMutation(c.config, OpUpdate)
+	return &ItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ItemClient) UpdateOne(_m *Item) *ItemUpdateOne {
+	mutation := newItemMutation(c.config, OpUpdateOne, withItem(_m))
+	return &ItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ItemClient) UpdateOneID(id uuid.UUID) *ItemUpdateOne {
+	mutation := newItemMutation(c.config, OpUpdateOne, withItemID(id))
+	return &ItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Item.
+func (c *ItemClient) Delete() *ItemDelete {
+	mutation := newItemMutation(c.config, OpDelete)
+	return &ItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ItemClient) DeleteOne(_m *Item) *ItemDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ItemClient) DeleteOneID(id uuid.UUID) *ItemDeleteOne {
+	builder := c.Delete().Where(item.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ItemDeleteOne{builder}
+}
+
+// Query returns a query builder for Item.
+func (c *ItemClient) Query() *ItemQuery {
+	return &ItemQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeItem},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Item entity by its id.
+func (c *ItemClient) Get(ctx context.Context, id uuid.UUID) (*Item, error) {
+	return c.Query().Where(item.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ItemClient) GetX(ctx context.Context, id uuid.UUID) *Item {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Item.
+func (c *ItemClient) QueryUser(_m *Item) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, item.UserTable, item.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAccounts queries the accounts edge of a Item.
+func (c *ItemClient) QueryAccounts(_m *Item) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.AccountsTable, item.AccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySyncCursor queries the sync_cursor edge of a Item.
+func (c *ItemClient) QuerySyncCursor(_m *Item) *SyncCursorQuery {
+	query := (&SyncCursorClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(synccursor.Table, synccursor.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, item.SyncCursorTable, item.SyncCursorColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ItemClient) Hooks() []Hook {
+	return c.hooks.Item
+}
+
+// Interceptors returns the client interceptors.
+func (c *ItemClient) Interceptors() []Interceptor {
+	return c.inters.Item
+}
+
+func (c *ItemClient) mutate(ctx context.Context, m *ItemMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ItemCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ItemUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Item mutation op: %q", m.Op())
+	}
+}
+
+// SyncCursorClient is a client for the SyncCursor schema.
+type SyncCursorClient struct {
+	config
+}
+
+// NewSyncCursorClient returns a client for the SyncCursor from the given config.
+func NewSyncCursorClient(c config) *SyncCursorClient {
+	return &SyncCursorClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `synccursor.Hooks(f(g(h())))`.
+func (c *SyncCursorClient) Use(hooks ...Hook) {
+	c.hooks.SyncCursor = append(c.hooks.SyncCursor, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `synccursor.Intercept(f(g(h())))`.
+func (c *SyncCursorClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SyncCursor = append(c.inters.SyncCursor, interceptors...)
+}
+
+// Create returns a builder for creating a SyncCursor entity.
+func (c *SyncCursorClient) Create() *SyncCursorCreate {
+	mutation := newSyncCursorMutation(c.config, OpCreate)
+	return &SyncCursorCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SyncCursor entities.
+func (c *SyncCursorClient) CreateBulk(builders ...*SyncCursorCreate) *SyncCursorCreateBulk {
+	return &SyncCursorCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SyncCursorClient) MapCreateBulk(slice any, setFunc func(*SyncCursorCreate, int)) *SyncCursorCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SyncCursorCreateBulk{err: fmt.Errorf("calling to SyncCursorClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SyncCursorCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SyncCursorCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SyncCursor.
+func (c *SyncCursorClient) Update() *SyncCursorUpdate {
+	mutation := newSyncCursorMutation(c.config, OpUpdate)
+	return &SyncCursorUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SyncCursorClient) UpdateOne(_m *SyncCursor) *SyncCursorUpdateOne {
+	mutation := newSyncCursorMutation(c.config, OpUpdateOne, withSyncCursor(_m))
+	return &SyncCursorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SyncCursorClient) UpdateOneID(id uuid.UUID) *SyncCursorUpdateOne {
+	mutation := newSyncCursorMutation(c.config, OpUpdateOne, withSyncCursorID(id))
+	return &SyncCursorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SyncCursor.
+func (c *SyncCursorClient) Delete() *SyncCursorDelete {
+	mutation := newSyncCursorMutation(c.config, OpDelete)
+	return &SyncCursorDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SyncCursorClient) DeleteOne(_m *SyncCursor) *SyncCursorDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SyncCursorClient) DeleteOneID(id uuid.UUID) *SyncCursorDeleteOne {
+	builder := c.Delete().Where(synccursor.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SyncCursorDeleteOne{builder}
+}
+
+// Query returns a query builder for SyncCursor.
+func (c *SyncCursorClient) Query() *SyncCursorQuery {
+	return &SyncCursorQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSyncCursor},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SyncCursor entity by its id.
+func (c *SyncCursorClient) Get(ctx context.Context, id uuid.UUID) (*SyncCursor, error) {
+	return c.Query().Where(synccursor.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SyncCursorClient) GetX(ctx context.Context, id uuid.UUID) *SyncCursor {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryItem queries the item edge of a SyncCursor.
+func (c *SyncCursorClient) QueryItem(_m *SyncCursor) *ItemQuery {
+	query := (&ItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(synccursor.Table, synccursor.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, synccursor.ItemTable, synccursor.ItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SyncCursorClient) Hooks() []Hook {
+	return c.hooks.SyncCursor
+}
+
+// Interceptors returns the client interceptors.
+func (c *SyncCursorClient) Interceptors() []Interceptor {
+	return c.inters.SyncCursor
+}
+
+func (c *SyncCursorClient) mutate(ctx context.Context, m *SyncCursorMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SyncCursorCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SyncCursorUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SyncCursorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SyncCursorDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SyncCursor mutation op: %q", m.Op())
+	}
+}
+
+// TransactionClient is a client for the Transaction schema.
+type TransactionClient struct {
+	config
+}
+
+// NewTransactionClient returns a client for the Transaction from the given config.
+func NewTransactionClient(c config) *TransactionClient {
+	return &TransactionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `transaction.Hooks(f(g(h())))`.
+func (c *TransactionClient) Use(hooks ...Hook) {
+	c.hooks.Transaction = append(c.hooks.Transaction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `transaction.Intercept(f(g(h())))`.
+func (c *TransactionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Transaction = append(c.inters.Transaction, interceptors...)
+}
+
+// Create returns a builder for creating a Transaction entity.
+func (c *TransactionClient) Create() *TransactionCreate {
+	mutation := newTransactionMutation(c.config, OpCreate)
+	return &TransactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Transaction entities.
+func (c *TransactionClient) CreateBulk(builders ...*TransactionCreate) *TransactionCreateBulk {
+	return &TransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TransactionClient) MapCreateBulk(slice any, setFunc func(*TransactionCreate, int)) *TransactionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TransactionCreateBulk{err: fmt.Errorf("calling to TransactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TransactionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Transaction.
+func (c *TransactionClient) Update() *TransactionUpdate {
+	mutation := newTransactionMutation(c.config, OpUpdate)
+	return &TransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TransactionClient) UpdateOne(_m *Transaction) *TransactionUpdateOne {
+	mutation := newTransactionMutation(c.config, OpUpdateOne, withTransaction(_m))
+	return &TransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TransactionClient) UpdateOneID(id uuid.UUID) *TransactionUpdateOne {
+	mutation := newTransactionMutation(c.config, OpUpdateOne, withTransactionID(id))
+	return &TransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Transaction.
+func (c *TransactionClient) Delete() *TransactionDelete {
+	mutation := newTransactionMutation(c.config, OpDelete)
+	return &TransactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TransactionClient) DeleteOne(_m *Transaction) *TransactionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TransactionClient) DeleteOneID(id uuid.UUID) *TransactionDeleteOne {
+	builder := c.Delete().Where(transaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TransactionDeleteOne{builder}
+}
+
+// Query returns a query builder for Transaction.
+func (c *TransactionClient) Query() *TransactionQuery {
+	return &TransactionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTransaction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Transaction entity by its id.
+func (c *TransactionClient) Get(ctx context.Context, id uuid.UUID) (*Transaction, error) {
+	return c.Query().Where(transaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TransactionClient) GetX(ctx context.Context, id uuid.UUID) *Transaction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAccount queries the account edge of a Transaction.
+func (c *TransactionClient) QueryAccount(_m *Transaction) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(transaction.Table, transaction.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, transaction.AccountTable, transaction.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TransactionClient) Hooks() []Hook {
+	return c.hooks.Transaction
+}
+
+// Interceptors returns the client interceptors.
+func (c *TransactionClient) Interceptors() []Interceptor {
+	return c.inters.Transaction
+}
+
+func (c *TransactionClient) mutate(ctx context.Context, m *TransactionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TransactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TransactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Transaction mutation op: %q", m.Op())
 	}
 }
 
@@ -329,22 +1009,6 @@ func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	return obj
 }
 
-// QueryAccounts queries the accounts edge of a User.
-func (c *UserClient) QueryAccounts(_m *User) *VirtualAccountQuery {
-	query := (&VirtualAccountClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(virtualaccount.Table, virtualaccount.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.AccountsTable, user.AccountsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryUser queries the user edge of a User.
 func (c *UserClient) QueryUser(_m *User) *UserQuery {
 	query := (&UserClient{config: c.config}).Query()
@@ -377,6 +1041,38 @@ func (c *UserClient) QueryCustodyAccount(_m *User) *UserQuery {
 	return query
 }
 
+// QueryItems queries the items edge of a User.
+func (c *UserClient) QueryItems(_m *User) *ItemQuery {
+	query := (&ItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ItemsTable, user.ItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAccounts queries the accounts edge of a User.
+func (c *UserClient) QueryAccounts(_m *User) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.AccountsTable, user.AccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -402,327 +1098,13 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
-// VirtualAccountClient is a client for the VirtualAccount schema.
-type VirtualAccountClient struct {
-	config
-}
-
-// NewVirtualAccountClient returns a client for the VirtualAccount from the given config.
-func NewVirtualAccountClient(c config) *VirtualAccountClient {
-	return &VirtualAccountClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `virtualaccount.Hooks(f(g(h())))`.
-func (c *VirtualAccountClient) Use(hooks ...Hook) {
-	c.hooks.VirtualAccount = append(c.hooks.VirtualAccount, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `virtualaccount.Intercept(f(g(h())))`.
-func (c *VirtualAccountClient) Intercept(interceptors ...Interceptor) {
-	c.inters.VirtualAccount = append(c.inters.VirtualAccount, interceptors...)
-}
-
-// Create returns a builder for creating a VirtualAccount entity.
-func (c *VirtualAccountClient) Create() *VirtualAccountCreate {
-	mutation := newVirtualAccountMutation(c.config, OpCreate)
-	return &VirtualAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of VirtualAccount entities.
-func (c *VirtualAccountClient) CreateBulk(builders ...*VirtualAccountCreate) *VirtualAccountCreateBulk {
-	return &VirtualAccountCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *VirtualAccountClient) MapCreateBulk(slice any, setFunc func(*VirtualAccountCreate, int)) *VirtualAccountCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &VirtualAccountCreateBulk{err: fmt.Errorf("calling to VirtualAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*VirtualAccountCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &VirtualAccountCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for VirtualAccount.
-func (c *VirtualAccountClient) Update() *VirtualAccountUpdate {
-	mutation := newVirtualAccountMutation(c.config, OpUpdate)
-	return &VirtualAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *VirtualAccountClient) UpdateOne(_m *VirtualAccount) *VirtualAccountUpdateOne {
-	mutation := newVirtualAccountMutation(c.config, OpUpdateOne, withVirtualAccount(_m))
-	return &VirtualAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *VirtualAccountClient) UpdateOneID(id uuid.UUID) *VirtualAccountUpdateOne {
-	mutation := newVirtualAccountMutation(c.config, OpUpdateOne, withVirtualAccountID(id))
-	return &VirtualAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for VirtualAccount.
-func (c *VirtualAccountClient) Delete() *VirtualAccountDelete {
-	mutation := newVirtualAccountMutation(c.config, OpDelete)
-	return &VirtualAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *VirtualAccountClient) DeleteOne(_m *VirtualAccount) *VirtualAccountDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *VirtualAccountClient) DeleteOneID(id uuid.UUID) *VirtualAccountDeleteOne {
-	builder := c.Delete().Where(virtualaccount.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &VirtualAccountDeleteOne{builder}
-}
-
-// Query returns a query builder for VirtualAccount.
-func (c *VirtualAccountClient) Query() *VirtualAccountQuery {
-	return &VirtualAccountQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeVirtualAccount},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a VirtualAccount entity by its id.
-func (c *VirtualAccountClient) Get(ctx context.Context, id uuid.UUID) (*VirtualAccount, error) {
-	return c.Query().Where(virtualaccount.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *VirtualAccountClient) GetX(ctx context.Context, id uuid.UUID) *VirtualAccount {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryTransactions queries the transactions edge of a VirtualAccount.
-func (c *VirtualAccountClient) QueryTransactions(_m *VirtualAccount) *VirtualAccountTransactionQuery {
-	query := (&VirtualAccountTransactionClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(virtualaccount.Table, virtualaccount.FieldID, id),
-			sqlgraph.To(virtualaccounttransaction.Table, virtualaccounttransaction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, virtualaccount.TransactionsTable, virtualaccount.TransactionsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryUser queries the user edge of a VirtualAccount.
-func (c *VirtualAccountClient) QueryUser(_m *VirtualAccount) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(virtualaccount.Table, virtualaccount.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, virtualaccount.UserTable, virtualaccount.UserColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *VirtualAccountClient) Hooks() []Hook {
-	return c.hooks.VirtualAccount
-}
-
-// Interceptors returns the client interceptors.
-func (c *VirtualAccountClient) Interceptors() []Interceptor {
-	return c.inters.VirtualAccount
-}
-
-func (c *VirtualAccountClient) mutate(ctx context.Context, m *VirtualAccountMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&VirtualAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&VirtualAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&VirtualAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&VirtualAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown VirtualAccount mutation op: %q", m.Op())
-	}
-}
-
-// VirtualAccountTransactionClient is a client for the VirtualAccountTransaction schema.
-type VirtualAccountTransactionClient struct {
-	config
-}
-
-// NewVirtualAccountTransactionClient returns a client for the VirtualAccountTransaction from the given config.
-func NewVirtualAccountTransactionClient(c config) *VirtualAccountTransactionClient {
-	return &VirtualAccountTransactionClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `virtualaccounttransaction.Hooks(f(g(h())))`.
-func (c *VirtualAccountTransactionClient) Use(hooks ...Hook) {
-	c.hooks.VirtualAccountTransaction = append(c.hooks.VirtualAccountTransaction, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `virtualaccounttransaction.Intercept(f(g(h())))`.
-func (c *VirtualAccountTransactionClient) Intercept(interceptors ...Interceptor) {
-	c.inters.VirtualAccountTransaction = append(c.inters.VirtualAccountTransaction, interceptors...)
-}
-
-// Create returns a builder for creating a VirtualAccountTransaction entity.
-func (c *VirtualAccountTransactionClient) Create() *VirtualAccountTransactionCreate {
-	mutation := newVirtualAccountTransactionMutation(c.config, OpCreate)
-	return &VirtualAccountTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of VirtualAccountTransaction entities.
-func (c *VirtualAccountTransactionClient) CreateBulk(builders ...*VirtualAccountTransactionCreate) *VirtualAccountTransactionCreateBulk {
-	return &VirtualAccountTransactionCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *VirtualAccountTransactionClient) MapCreateBulk(slice any, setFunc func(*VirtualAccountTransactionCreate, int)) *VirtualAccountTransactionCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &VirtualAccountTransactionCreateBulk{err: fmt.Errorf("calling to VirtualAccountTransactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*VirtualAccountTransactionCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &VirtualAccountTransactionCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for VirtualAccountTransaction.
-func (c *VirtualAccountTransactionClient) Update() *VirtualAccountTransactionUpdate {
-	mutation := newVirtualAccountTransactionMutation(c.config, OpUpdate)
-	return &VirtualAccountTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *VirtualAccountTransactionClient) UpdateOne(_m *VirtualAccountTransaction) *VirtualAccountTransactionUpdateOne {
-	mutation := newVirtualAccountTransactionMutation(c.config, OpUpdateOne, withVirtualAccountTransaction(_m))
-	return &VirtualAccountTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *VirtualAccountTransactionClient) UpdateOneID(id uuid.UUID) *VirtualAccountTransactionUpdateOne {
-	mutation := newVirtualAccountTransactionMutation(c.config, OpUpdateOne, withVirtualAccountTransactionID(id))
-	return &VirtualAccountTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for VirtualAccountTransaction.
-func (c *VirtualAccountTransactionClient) Delete() *VirtualAccountTransactionDelete {
-	mutation := newVirtualAccountTransactionMutation(c.config, OpDelete)
-	return &VirtualAccountTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *VirtualAccountTransactionClient) DeleteOne(_m *VirtualAccountTransaction) *VirtualAccountTransactionDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *VirtualAccountTransactionClient) DeleteOneID(id uuid.UUID) *VirtualAccountTransactionDeleteOne {
-	builder := c.Delete().Where(virtualaccounttransaction.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &VirtualAccountTransactionDeleteOne{builder}
-}
-
-// Query returns a query builder for VirtualAccountTransaction.
-func (c *VirtualAccountTransactionClient) Query() *VirtualAccountTransactionQuery {
-	return &VirtualAccountTransactionQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeVirtualAccountTransaction},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a VirtualAccountTransaction entity by its id.
-func (c *VirtualAccountTransactionClient) Get(ctx context.Context, id uuid.UUID) (*VirtualAccountTransaction, error) {
-	return c.Query().Where(virtualaccounttransaction.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *VirtualAccountTransactionClient) GetX(ctx context.Context, id uuid.UUID) *VirtualAccountTransaction {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryVirtualAccount queries the virtual_account edge of a VirtualAccountTransaction.
-func (c *VirtualAccountTransactionClient) QueryVirtualAccount(_m *VirtualAccountTransaction) *VirtualAccountQuery {
-	query := (&VirtualAccountClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(virtualaccounttransaction.Table, virtualaccounttransaction.FieldID, id),
-			sqlgraph.To(virtualaccount.Table, virtualaccount.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, virtualaccounttransaction.VirtualAccountTable, virtualaccounttransaction.VirtualAccountColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *VirtualAccountTransactionClient) Hooks() []Hook {
-	return c.hooks.VirtualAccountTransaction
-}
-
-// Interceptors returns the client interceptors.
-func (c *VirtualAccountTransactionClient) Interceptors() []Interceptor {
-	return c.inters.VirtualAccountTransaction
-}
-
-func (c *VirtualAccountTransactionClient) mutate(ctx context.Context, m *VirtualAccountTransactionMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&VirtualAccountTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&VirtualAccountTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&VirtualAccountTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&VirtualAccountTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown VirtualAccountTransaction mutation op: %q", m.Op())
-	}
-}
-
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		User, VirtualAccount, VirtualAccountTransaction []ent.Hook
+		Account, Item, SyncCursor, Transaction, User []ent.Hook
 	}
 	inters struct {
-		User, VirtualAccount, VirtualAccountTransaction []ent.Interceptor
+		Account, Item, SyncCursor, Transaction, User []ent.Interceptor
 	}
 )
 

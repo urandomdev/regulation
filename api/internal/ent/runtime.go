@@ -3,10 +3,13 @@
 package ent
 
 import (
+	"regulation/internal/ent/account"
+	"regulation/internal/ent/item"
 	"regulation/internal/ent/schema"
+	"regulation/internal/ent/synccursor"
+	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
-	"regulation/internal/ent/virtualaccount"
-	"regulation/internal/ent/virtualaccounttransaction"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -15,26 +18,120 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	accountFields := schema.Account{}.Fields()
+	_ = accountFields
+	// accountDescPlaidID is the schema descriptor for plaid_id field.
+	accountDescPlaidID := accountFields[3].Descriptor()
+	// account.PlaidIDValidator is a validator for the "plaid_id" field. It is called by the builders before save.
+	account.PlaidIDValidator = accountDescPlaidID.Validators[0].(func(string) error)
+	// accountDescName is the schema descriptor for name field.
+	accountDescName := accountFields[4].Descriptor()
+	// account.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	account.NameValidator = accountDescName.Validators[0].(func(string) error)
+	// accountDescCurrentBalance is the schema descriptor for current_balance field.
+	accountDescCurrentBalance := accountFields[8].Descriptor()
+	// account.DefaultCurrentBalance holds the default value on creation for the current_balance field.
+	account.DefaultCurrentBalance = accountDescCurrentBalance.Default.(int64)
+	// accountDescIsActive is the schema descriptor for is_active field.
+	accountDescIsActive := accountFields[10].Descriptor()
+	// account.DefaultIsActive holds the default value on creation for the is_active field.
+	account.DefaultIsActive = accountDescIsActive.Default.(bool)
+	// accountDescCreatedAt is the schema descriptor for created_at field.
+	accountDescCreatedAt := accountFields[11].Descriptor()
+	// account.DefaultCreatedAt holds the default value on creation for the created_at field.
+	account.DefaultCreatedAt = accountDescCreatedAt.Default.(func() time.Time)
+	// accountDescUpdatedAt is the schema descriptor for updated_at field.
+	accountDescUpdatedAt := accountFields[12].Descriptor()
+	// account.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	account.DefaultUpdatedAt = accountDescUpdatedAt.Default.(func() time.Time)
+	// account.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	account.UpdateDefaultUpdatedAt = accountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// accountDescID is the schema descriptor for id field.
+	accountDescID := accountFields[0].Descriptor()
+	// account.DefaultID holds the default value on creation for the id field.
+	account.DefaultID = accountDescID.Default.(func() uuid.UUID)
+	itemFields := schema.Item{}.Fields()
+	_ = itemFields
+	// itemDescPlaidID is the schema descriptor for plaid_id field.
+	itemDescPlaidID := itemFields[2].Descriptor()
+	// item.PlaidIDValidator is a validator for the "plaid_id" field. It is called by the builders before save.
+	item.PlaidIDValidator = itemDescPlaidID.Validators[0].(func(string) error)
+	// itemDescAccessToken is the schema descriptor for access_token field.
+	itemDescAccessToken := itemFields[3].Descriptor()
+	// item.AccessTokenValidator is a validator for the "access_token" field. It is called by the builders before save.
+	item.AccessTokenValidator = itemDescAccessToken.Validators[0].(func(string) error)
+	// itemDescInstitutionName is the schema descriptor for institution_name field.
+	itemDescInstitutionName := itemFields[4].Descriptor()
+	// item.InstitutionNameValidator is a validator for the "institution_name" field. It is called by the builders before save.
+	item.InstitutionNameValidator = itemDescInstitutionName.Validators[0].(func(string) error)
+	// itemDescIsActive is the schema descriptor for is_active field.
+	itemDescIsActive := itemFields[5].Descriptor()
+	// item.DefaultIsActive holds the default value on creation for the is_active field.
+	item.DefaultIsActive = itemDescIsActive.Default.(bool)
+	// itemDescCreatedAt is the schema descriptor for created_at field.
+	itemDescCreatedAt := itemFields[6].Descriptor()
+	// item.DefaultCreatedAt holds the default value on creation for the created_at field.
+	item.DefaultCreatedAt = itemDescCreatedAt.Default.(func() time.Time)
+	// itemDescUpdatedAt is the schema descriptor for updated_at field.
+	itemDescUpdatedAt := itemFields[7].Descriptor()
+	// item.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	item.DefaultUpdatedAt = itemDescUpdatedAt.Default.(func() time.Time)
+	// item.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	item.UpdateDefaultUpdatedAt = itemDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// itemDescID is the schema descriptor for id field.
+	itemDescID := itemFields[0].Descriptor()
+	// item.DefaultID holds the default value on creation for the id field.
+	item.DefaultID = itemDescID.Default.(func() uuid.UUID)
+	synccursorFields := schema.SyncCursor{}.Fields()
+	_ = synccursorFields
+	// synccursorDescCursor is the schema descriptor for cursor field.
+	synccursorDescCursor := synccursorFields[2].Descriptor()
+	// synccursor.DefaultCursor holds the default value on creation for the cursor field.
+	synccursor.DefaultCursor = synccursorDescCursor.Default.(string)
+	// synccursorDescLastSyncAt is the schema descriptor for last_sync_at field.
+	synccursorDescLastSyncAt := synccursorFields[3].Descriptor()
+	// synccursor.DefaultLastSyncAt holds the default value on creation for the last_sync_at field.
+	synccursor.DefaultLastSyncAt = synccursorDescLastSyncAt.Default.(func() time.Time)
+	// synccursorDescID is the schema descriptor for id field.
+	synccursorDescID := synccursorFields[0].Descriptor()
+	// synccursor.DefaultID holds the default value on creation for the id field.
+	synccursor.DefaultID = synccursorDescID.Default.(func() uuid.UUID)
+	transactionFields := schema.Transaction{}.Fields()
+	_ = transactionFields
+	// transactionDescPlaidID is the schema descriptor for plaid_id field.
+	transactionDescPlaidID := transactionFields[2].Descriptor()
+	// transaction.PlaidIDValidator is a validator for the "plaid_id" field. It is called by the builders before save.
+	transaction.PlaidIDValidator = transactionDescPlaidID.Validators[0].(func(string) error)
+	// transactionDescName is the schema descriptor for name field.
+	transactionDescName := transactionFields[5].Descriptor()
+	// transaction.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	transaction.NameValidator = transactionDescName.Validators[0].(func(string) error)
+	// transactionDescCategory is the schema descriptor for category field.
+	transactionDescCategory := transactionFields[7].Descriptor()
+	// transaction.DefaultCategory holds the default value on creation for the category field.
+	transaction.DefaultCategory = transactionDescCategory.Default.(string)
+	// transactionDescPending is the schema descriptor for pending field.
+	transactionDescPending := transactionFields[9].Descriptor()
+	// transaction.DefaultPending holds the default value on creation for the pending field.
+	transaction.DefaultPending = transactionDescPending.Default.(bool)
+	// transactionDescCreatedAt is the schema descriptor for created_at field.
+	transactionDescCreatedAt := transactionFields[11].Descriptor()
+	// transaction.DefaultCreatedAt holds the default value on creation for the created_at field.
+	transaction.DefaultCreatedAt = transactionDescCreatedAt.Default.(func() time.Time)
+	// transactionDescUpdatedAt is the schema descriptor for updated_at field.
+	transactionDescUpdatedAt := transactionFields[12].Descriptor()
+	// transaction.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	transaction.DefaultUpdatedAt = transactionDescUpdatedAt.Default.(func() time.Time)
+	// transaction.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	transaction.UpdateDefaultUpdatedAt = transactionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// transactionDescID is the schema descriptor for id field.
+	transactionDescID := transactionFields[0].Descriptor()
+	// transaction.DefaultID holds the default value on creation for the id field.
+	transaction.DefaultID = transactionDescID.Default.(func() uuid.UUID)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescID is the schema descriptor for id field.
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
-	virtualaccountFields := schema.VirtualAccount{}.Fields()
-	_ = virtualaccountFields
-	// virtualaccountDescName is the schema descriptor for name field.
-	virtualaccountDescName := virtualaccountFields[2].Descriptor()
-	// virtualaccount.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	virtualaccount.NameValidator = virtualaccountDescName.Validators[0].(func(string) error)
-	// virtualaccountDescID is the schema descriptor for id field.
-	virtualaccountDescID := virtualaccountFields[0].Descriptor()
-	// virtualaccount.DefaultID holds the default value on creation for the id field.
-	virtualaccount.DefaultID = virtualaccountDescID.Default.(func() uuid.UUID)
-	virtualaccounttransactionFields := schema.VirtualAccountTransaction{}.Fields()
-	_ = virtualaccounttransactionFields
-	// virtualaccounttransactionDescID is the schema descriptor for id field.
-	virtualaccounttransactionDescID := virtualaccounttransactionFields[0].Descriptor()
-	// virtualaccounttransaction.DefaultID holds the default value on creation for the id field.
-	virtualaccounttransaction.DefaultID = virtualaccounttransactionDescID.Default.(func() uuid.UUID)
 }

@@ -21,21 +21,16 @@ const (
 	FieldCustodyAccountID = "custody_account_id"
 	// FieldNickname holds the string denoting the nickname field in the database.
 	FieldNickname = "nickname"
-	// EdgeAccounts holds the string denoting the accounts edge name in mutations.
-	EdgeAccounts = "accounts"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeCustodyAccount holds the string denoting the custody_account edge name in mutations.
 	EdgeCustodyAccount = "custody_account"
+	// EdgeItems holds the string denoting the items edge name in mutations.
+	EdgeItems = "items"
+	// EdgeAccounts holds the string denoting the accounts edge name in mutations.
+	EdgeAccounts = "accounts"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// AccountsTable is the table that holds the accounts relation/edge.
-	AccountsTable = "virtual_accounts"
-	// AccountsInverseTable is the table name for the VirtualAccount entity.
-	// It exists in this package in order to avoid circular dependency with the "virtualaccount" package.
-	AccountsInverseTable = "virtual_accounts"
-	// AccountsColumn is the table column denoting the accounts relation/edge.
-	AccountsColumn = "user_id"
 	// UserTable is the table that holds the user relation/edge.
 	UserTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
@@ -44,6 +39,20 @@ const (
 	CustodyAccountTable = "users"
 	// CustodyAccountColumn is the table column denoting the custody_account relation/edge.
 	CustodyAccountColumn = "custody_account_id"
+	// ItemsTable is the table that holds the items relation/edge.
+	ItemsTable = "items"
+	// ItemsInverseTable is the table name for the Item entity.
+	// It exists in this package in order to avoid circular dependency with the "item" package.
+	ItemsInverseTable = "items"
+	// ItemsColumn is the table column denoting the items relation/edge.
+	ItemsColumn = "user_id"
+	// AccountsTable is the table that holds the accounts relation/edge.
+	AccountsTable = "accounts"
+	// AccountsInverseTable is the table name for the Account entity.
+	// It exists in this package in order to avoid circular dependency with the "account" package.
+	AccountsInverseTable = "accounts"
+	// AccountsColumn is the table column denoting the accounts relation/edge.
+	AccountsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -93,20 +102,6 @@ func ByNickname(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNickname, opts...).ToFunc()
 }
 
-// ByAccountsCount orders the results by accounts count.
-func ByAccountsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAccountsStep(), opts...)
-	}
-}
-
-// ByAccounts orders the results by accounts terms.
-func ByAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByUserCount orders the results by user count.
 func ByUserCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -127,12 +122,33 @@ func ByCustodyAccountField(field string, opts ...sql.OrderTermOption) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newCustodyAccountStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newAccountsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AccountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, AccountsTable, AccountsColumn),
-	)
+
+// ByItemsCount orders the results by items count.
+func ByItemsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newItemsStep(), opts...)
+	}
+}
+
+// ByItems orders the results by items terms.
+func ByItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByAccountsCount orders the results by accounts count.
+func ByAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAccountsStep(), opts...)
+	}
+}
+
+// ByAccounts orders the results by accounts terms.
+func ByAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
 }
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
@@ -146,5 +162,19 @@ func newCustodyAccountStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, CustodyAccountTable, CustodyAccountColumn),
+	)
+}
+func newItemsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ItemsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ItemsTable, ItemsColumn),
+	)
+}
+func newAccountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AccountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AccountsTable, AccountsColumn),
 	)
 }

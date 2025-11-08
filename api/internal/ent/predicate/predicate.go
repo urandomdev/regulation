@@ -6,11 +6,17 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Account is the predicate function for account builders.
+type Account func(*sql.Selector)
+
+// Item is the predicate function for item builders.
+type Item func(*sql.Selector)
+
+// SyncCursor is the predicate function for synccursor builders.
+type SyncCursor func(*sql.Selector)
+
+// Transaction is the predicate function for transaction builders.
+type Transaction func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
-
-// VirtualAccount is the predicate function for virtualaccount builders.
-type VirtualAccount func(*sql.Selector)
-
-// VirtualAccountTransaction is the predicate function for virtualaccounttransaction builders.
-type VirtualAccountTransaction func(*sql.Selector)

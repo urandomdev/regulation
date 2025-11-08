@@ -22,8 +22,9 @@ const (
 
 // Config represents the application configuration
 type Config struct {
-	DB    *DB    `json:"database"`
-	Redis *Redis `json:"redis"`
+	DB    *DB          `json:"database"`
+	Redis *Redis       `json:"redis"`
+	Plaid *PlaidConfig `json:"plaid"`
 
 	Debug bool `json:"debug"`
 

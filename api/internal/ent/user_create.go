@@ -6,8 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regulation/internal/ent/account"
+	"regulation/internal/ent/item"
 	"regulation/internal/ent/user"
-	"regulation/internal/ent/virtualaccount"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -70,21 +71,6 @@ func (_c *UserCreate) SetNillableID(v *uuid.UUID) *UserCreate {
 	return _c
 }
 
-// AddAccountIDs adds the "accounts" edge to the VirtualAccount entity by IDs.
-func (_c *UserCreate) AddAccountIDs(ids ...uuid.UUID) *UserCreate {
-	_c.mutation.AddAccountIDs(ids...)
-	return _c
-}
-
-// AddAccounts adds the "accounts" edges to the VirtualAccount entity.
-func (_c *UserCreate) AddAccounts(v ...*VirtualAccount) *UserCreate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddAccountIDs(ids...)
-}
-
 // AddUserIDs adds the "user" edge to the User entity by IDs.
 func (_c *UserCreate) AddUserIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddUserIDs(ids...)
@@ -103,6 +89,36 @@ func (_c *UserCreate) AddUser(v ...*User) *UserCreate {
 // SetCustodyAccount sets the "custody_account" edge to the User entity.
 func (_c *UserCreate) SetCustodyAccount(v *User) *UserCreate {
 	return _c.SetCustodyAccountID(v.ID)
+}
+
+// AddItemIDs adds the "items" edge to the Item entity by IDs.
+func (_c *UserCreate) AddItemIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddItemIDs(ids...)
+	return _c
+}
+
+// AddItems adds the "items" edges to the Item entity.
+func (_c *UserCreate) AddItems(v ...*Item) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddItemIDs(ids...)
+}
+
+// AddAccountIDs adds the "accounts" edge to the Account entity by IDs.
+func (_c *UserCreate) AddAccountIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddAccountIDs(ids...)
+	return _c
+}
+
+// AddAccounts adds the "accounts" edges to the Account entity.
+func (_c *UserCreate) AddAccounts(v ...*Account) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAccountIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -205,22 +221,6 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldNickname, field.TypeString, value)
 		_node.Nickname = value
 	}
-	if nodes := _c.mutation.AccountsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.AccountsTable,
-			Columns: []string{user.AccountsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -252,6 +252,38 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CustodyAccountID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ItemsTable,
+			Columns: []string{user.ItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(item.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(account.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

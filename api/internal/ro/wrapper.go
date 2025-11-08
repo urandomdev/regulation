@@ -6,7 +6,7 @@ import (
 
 	"regulation/internal/config"
 	"regulation/internal/protocol"
-	"regulation/internal/request_context"
+	"regulation/server/services/request_context"
 
 	"github.com/DeltaLaboratory/contrib/u22"
 	"github.com/gofiber/fiber/v3"

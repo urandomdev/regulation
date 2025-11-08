@@ -7,9 +7,10 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
+	"regulation/internal/ent/account"
+	"regulation/internal/ent/item"
 	"regulation/internal/ent/predicate"
 	"regulation/internal/ent/user"
-	"regulation/internal/ent/virtualaccount"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -26,9 +27,10 @@ type UserQuery struct {
 	order              []user.OrderOption
 	inters             []Interceptor
 	predicates         []predicate.User
-	withAccounts       *VirtualAccountQuery
 	withUser           *UserQuery
 	withCustodyAccount *UserQuery
+	withItems          *ItemQuery
+	withAccounts       *AccountQuery
 	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -64,28 +66,6 @@ func (_q *UserQuery) Unique(unique bool) *UserQuery {
 func (_q *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 	_q.order = append(_q.order, o...)
 	return _q
-}
-
-// QueryAccounts chains the current query on the "accounts" edge.
-func (_q *UserQuery) QueryAccounts() *VirtualAccountQuery {
-	query := (&VirtualAccountClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(virtualaccount.Table, virtualaccount.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.AccountsTable, user.AccountsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // QueryUser chains the current query on the "user" edge.
@@ -125,6 +105,50 @@ func (_q *UserQuery) QueryCustodyAccount() *UserQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, user.CustodyAccountTable, user.CustodyAccountColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryItems chains the current query on the "items" edge.
+func (_q *UserQuery) QueryItems() *ItemQuery {
+	query := (&ItemClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ItemsTable, user.ItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAccounts chains the current query on the "accounts" edge.
+func (_q *UserQuery) QueryAccounts() *AccountQuery {
+	query := (&AccountClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.AccountsTable, user.AccountsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -324,25 +348,15 @@ func (_q *UserQuery) Clone() *UserQuery {
 		order:              append([]user.OrderOption{}, _q.order...),
 		inters:             append([]Interceptor{}, _q.inters...),
 		predicates:         append([]predicate.User{}, _q.predicates...),
-		withAccounts:       _q.withAccounts.Clone(),
 		withUser:           _q.withUser.Clone(),
 		withCustodyAccount: _q.withCustodyAccount.Clone(),
+		withItems:          _q.withItems.Clone(),
+		withAccounts:       _q.withAccounts.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
 		modifiers: append([]func(*sql.Selector){}, _q.modifiers...),
 	}
-}
-
-// WithAccounts tells the query-builder to eager-load the nodes that are connected to
-// the "accounts" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithAccounts(opts ...func(*VirtualAccountQuery)) *UserQuery {
-	query := (&VirtualAccountClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withAccounts = query
-	return _q
 }
 
 // WithUser tells the query-builder to eager-load the nodes that are connected to
@@ -364,6 +378,28 @@ func (_q *UserQuery) WithCustodyAccount(opts ...func(*UserQuery)) *UserQuery {
 		opt(query)
 	}
 	_q.withCustodyAccount = query
+	return _q
+}
+
+// WithItems tells the query-builder to eager-load the nodes that are connected to
+// the "items" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithItems(opts ...func(*ItemQuery)) *UserQuery {
+	query := (&ItemClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withItems = query
+	return _q
+}
+
+// WithAccounts tells the query-builder to eager-load the nodes that are connected to
+// the "accounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithAccounts(opts ...func(*AccountQuery)) *UserQuery {
+	query := (&AccountClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAccounts = query
 	return _q
 }
 
@@ -445,10 +481,11 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
-			_q.withAccounts != nil,
+		loadedTypes = [4]bool{
 			_q.withUser != nil,
 			_q.withCustodyAccount != nil,
+			_q.withItems != nil,
+			_q.withAccounts != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -472,13 +509,6 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withAccounts; query != nil {
-		if err := _q.loadAccounts(ctx, query, nodes,
-			func(n *User) { n.Edges.Accounts = []*VirtualAccount{} },
-			func(n *User, e *VirtualAccount) { n.Edges.Accounts = append(n.Edges.Accounts, e) }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withUser; query != nil {
 		if err := _q.loadUser(ctx, query, nodes,
 			func(n *User) { n.Edges.User = []*User{} },
@@ -492,39 +522,23 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			return nil, err
 		}
 	}
+	if query := _q.withItems; query != nil {
+		if err := _q.loadItems(ctx, query, nodes,
+			func(n *User) { n.Edges.Items = []*Item{} },
+			func(n *User, e *Item) { n.Edges.Items = append(n.Edges.Items, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAccounts; query != nil {
+		if err := _q.loadAccounts(ctx, query, nodes,
+			func(n *User) { n.Edges.Accounts = []*Account{} },
+			func(n *User, e *Account) { n.Edges.Accounts = append(n.Edges.Accounts, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
-func (_q *UserQuery) loadAccounts(ctx context.Context, query *VirtualAccountQuery, nodes []*User, init func(*User), assign func(*User, *VirtualAccount)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*User)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(virtualaccount.FieldUserID)
-	}
-	query.Where(predicate.VirtualAccount(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.AccountsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.UserID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
 func (_q *UserQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*User, init func(*User), assign func(*User, *User)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[uuid.UUID]*User)
@@ -587,6 +601,66 @@ func (_q *UserQuery) loadCustodyAccount(ctx context.Context, query *UserQuery, n
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (_q *UserQuery) loadItems(ctx context.Context, query *ItemQuery, nodes []*User, init func(*User), assign func(*User, *Item)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(item.FieldUserID)
+	}
+	query.Where(predicate.Item(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ItemsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadAccounts(ctx context.Context, query *AccountQuery, nodes []*User, init func(*User), assign func(*User, *Account)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(account.FieldUserID)
+	}
+	query.Where(predicate.Account(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.AccountsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

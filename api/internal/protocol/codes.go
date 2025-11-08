@@ -2,8 +2,10 @@ package protocol
 
 // Common errors
 const (
-	InternalError  = "internal_error"
-	InvalidRequest = "invalid_request"
+	InternalError          = "internal_error"
+	InvalidRequest         = "invalid_request"
+	InvalidParametersError = "invalid_parameters"
+	NotFoundError          = "not_found"
 )
 
 // Authentication errors

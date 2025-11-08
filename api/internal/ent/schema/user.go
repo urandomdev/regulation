@@ -29,10 +29,11 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("accounts", VirtualAccount.Type),
 		edge.To("custody_account", User.Type).
 			Field("custody_account_id").
 			Unique().
 			From("user"),
+		edge.To("items", Item.Type),
+		edge.To("accounts", Account.Type),
 	}
 }
