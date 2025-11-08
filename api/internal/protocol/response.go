@@ -19,3 +19,19 @@ func (r ErrorResponse) String() string {
 func (r ErrorResponse) Error() string {
 	return r.String()
 }
+
+// Unauthorized returns an unauthorized error
+func Unauthorized(message string) ErrorResponse {
+	return ErrorResponse{
+		Code:    UnauthorizedError,
+		Message: message,
+	}
+}
+
+// InvalidCredentials returns an invalid credentials error
+func InvalidCredentials() ErrorResponse {
+	return ErrorResponse{
+		Code:    InvalidCredentialsError,
+		Message: "invalid email or password",
+	}
+}

@@ -7,4 +7,6 @@ const (
 	keyTime contextKey = iota
 	keyRequestID
 	keyLogger
+	keyUser
+	keySession
 )

@@ -7,6 +7,7 @@ import (
 
 	"regulation/internal/config"
 	"regulation/internal/ent"
+	"regulation/internal/session"
 
 	"github.com/fxamacker/cbor/v2"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -32,9 +33,10 @@ type Server struct {
 	app    *fiber.App
 	config *config.Config
 
-	db        *ent.Client
-	cache     rueidis.Client
-	cacheLock rueidislock.Locker
+	db             *ent.Client
+	cache          rueidis.Client
+	cacheLock      rueidislock.Locker
+	sessionManager *session.Manager
 
 	logger zerolog.Logger
 }
@@ -92,6 +94,9 @@ func (s *Server) init(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create redis lock client: %w", err)
 	}
+
+	// Initialize session manager
+	s.sessionManager = session.NewManager(s.cache)
 
 	if err = s.setupDatabase(ctx); err != nil {
 		return fmt.Errorf("failed to setup database: %w", err)
