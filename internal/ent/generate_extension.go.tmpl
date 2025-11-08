@@ -1,0 +1,39 @@
+{{/* gotype: entgo.io/ent/entc/gen.Type */}}
+{{ define "where/additional" }}
+{{- range $f := $.Fields }}
+{{- if eq (index ($f.Column).SchemaType "postgres") "text[]" }}
+// {{ $f.StructField }}Contains checks if the {{ quote $f.Name }} array field contains the given element.
+func {{ $f.StructField }}Contains(elem string) predicate.{{ $.Name }} {
+    return predicate.{{ $.Name }}(func(s *sql.Selector) {
+        s.Where(sql.P(func(b *sql.Builder) {
+            b.Ident(s.C({{ printf "%q" $f.Name }})).
+              WriteString(" @> ").
+              Arg([]string{elem})
+        }))
+    })
+}
+
+// {{ $f.StructField }}HasAny checks if the {{ quote $f.Name }} array field has any of the given elements.
+func {{ $f.StructField }}HasAny(elems ...string) predicate.{{ $.Name }} {
+    return predicate.{{ $.Name }}(func(s *sql.Selector) {
+        s.Where(sql.P(func(b *sql.Builder) {
+            b.Ident(s.C({{ printf "%q" $f.Name }})).
+              WriteString(" && ").
+              Arg(elems)
+        }))
+    })
+}
+
+// {{ $f.StructField }}HasAll checks if the {{ quote $f.Name }} array field has all of the given elements.
+func {{ $f.StructField }}HasAll(elems ...string) predicate.{{ $.Name }} {
+    return predicate.{{ $.Name }}(func(s *sql.Selector) {
+        s.Where(sql.P(func(b *sql.Builder) {
+            b.Ident(s.C({{ printf "%q" $f.Name }})).
+              WriteString(" @> ").
+              Arg(elems)
+        }))
+    })
+}
+{{- end }}
+{{ end }}
+{{ end }}

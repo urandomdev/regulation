@@ -1,0 +1,43 @@
+{
+  "dependencies": {
+    "@deltalaboratory/uuid": "^0.3.3",
+    "cbor-x": "^1.5.0"
+  },
+  "description": "Generated TypeScript SDK",
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "esbuild": "^0.25.8",
+    "glob": "^11.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "types": "./dist/esm/index.d.ts"
+    },
+    "./account": {
+      "import": "./dist/esm/regulation/server/handlers/account.js",
+      "types": "./dist/esm/regulation/server/handlers/account.d.ts"
+    },
+    "./static/*": {
+      "import": "./dist/esm/static/*.js",
+      "types": "./dist/esm/static/*.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "name": "@generated/js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "scripts": {
+    "build": "node bundle.js",
+    "format": "prettier --write ."
+  },
+  "sideEffects": false,
+  "type": "module",
+  "version": "0.1.0"
+}
