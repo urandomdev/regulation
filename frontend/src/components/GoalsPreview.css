@@ -11,6 +11,20 @@
   box-shadow: var(--shadow-lg);
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 .view-all-link {
   font-size: 0.875rem;
   font-weight: 500;
@@ -41,6 +55,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .goal-name {
@@ -50,6 +65,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .family-badge {
@@ -59,6 +79,8 @@
 .goal-amounts {
   font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .goal-amounts .current {
@@ -98,6 +120,23 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
-  min-width: 3rem;
+  min-width: 2.5rem;
   text-align: right;
+  flex-shrink: 0;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 380px) {
+  .goal-amounts {
+    font-size: 0.75rem;
+  }
+
+  .goal-name {
+    font-size: 0.8125rem;
+  }
+
+  .progress-text {
+    min-width: 2rem;
+    font-size: 0.6875rem;
+  }
 }

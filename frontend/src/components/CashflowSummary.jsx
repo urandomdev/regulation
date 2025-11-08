@@ -1,15 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMonthlyIncome, getMonthlySpend, getMonthlyAutoSaved } from '../data/store';
+import { financialService } from '../services/financialService';
 import './CashflowSummary.css';
 
 const CashflowSummary = () => {
   const navigate = useNavigate();
+  const [cashflow, setCashflow] = useState({
+    income: 0,
+    spend: 0,
+    net: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const income = getMonthlyIncome();
-  const spend = getMonthlySpend();
-  const saved = getMonthlyAutoSaved();
-  const net = income - spend;
+  useEffect(() => {
+    const fetchCashflow = async () => {
+      try {
+        setLoading(true);
+        const data = await financialService.getCurrentMonthCashflow();
+        setCashflow(data);
+      } catch (err) {
+        console.error('Failed to fetch cashflow:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCashflow();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="cashflow-summary-card">
+        <div className="card-header">
+          <h2>Monthly Summary</h2>
+        </div>
+        <div className="loading">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="cashflow-summary-card">
+        <div className="card-header">
+          <h2>Monthly Summary</h2>
+        </div>
+        <div className="error">Error: {error}</div>
+      </div>
+    );
+  }
+
+  const { income, spend, net } = cashflow;
+  // TODO: Auto-saved amount - need backend API support
+  const saved = 0;
 
   return (
     <div className="cashflow-summary-card" onClick={() => navigate('/cashflow-details')}>
@@ -23,7 +68,7 @@ const CashflowSummary = () => {
       <div className="summary-grid">
         <div className="summary-item income">
           <span className="summary-label">Income</span>
-          <span className="summary-value">${income.toFixed(0)}</span>
+          <span className="summary-value">${Math.abs(income).toFixed(0)}</span>
         </div>
         <div className="summary-item spend">
           <span className="summary-label">Spend</span>
