@@ -73,7 +73,10 @@ const RulesWidget = () => {
   return (
     <div className="widget-page" id="rules-widget-page">
       <div className="widget-header">
-        <button className="back-button" onClick={() => navigate('/')}>
+        <button className="back-button" onClick={() =>{
+            navigate('/');
+        }
+        }>
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -85,7 +88,10 @@ const RulesWidget = () => {
       <div className="widget-content">
         <button
           className="add-button"
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+              setShowForm(true);
+          }
+          }
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

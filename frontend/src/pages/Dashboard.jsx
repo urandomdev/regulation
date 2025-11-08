@@ -32,11 +32,11 @@ const Dashboard = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button className="fab" onClick={() => navigate('/add-rule')}>
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
+          {/*<button className="fab" onClick={() => navigate('/add-rule')}>*/}
+          {/*  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">*/}
+          {/*    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />*/}
+          {/*  </svg>*/}
+          {/*</button>*/}
     </div>
   );
 };
