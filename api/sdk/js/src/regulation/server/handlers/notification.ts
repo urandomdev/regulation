@@ -8,6 +8,12 @@ export interface SubscribeRequest {
   p256dh: string
   auth: string
 }
+export interface UnsubscribeRequest {
+  endpoint: string
+}
+export interface VAPIDPublicKeyResponse {
+  public_key: string
+}
 
 export const SubscribeRequestCodec: Codec<SubscribeRequest> = {
   encode: (data: SubscribeRequest): object => ({
@@ -15,35 +21,27 @@ export const SubscribeRequestCodec: Codec<SubscribeRequest> = {
     p256dh: data.p256dh,
     auth: data.auth,
   }),
-  decode: (data: any): SubscribeRequest => ({
-    endpoint: data.endpoint,
-    p256dh: data.p256dh,
-    auth: data.auth,
+  decode: (encoded: any): SubscribeRequest => ({
+    endpoint: encoded['endpoint'],
+    p256dh: encoded['p256dh'],
+    auth: encoded['auth'],
   }),
-}
-
-export interface UnsubscribeRequest {
-  endpoint: string
 }
 
 export const UnsubscribeRequestCodec: Codec<UnsubscribeRequest> = {
   encode: (data: UnsubscribeRequest): object => ({
     endpoint: data.endpoint,
   }),
-  decode: (data: any): UnsubscribeRequest => ({
-    endpoint: data.endpoint,
+  decode: (encoded: any): UnsubscribeRequest => ({
+    endpoint: encoded['endpoint'],
   }),
-}
-
-export interface VAPIDPublicKeyResponse {
-  publicKey: string
 }
 
 export const VAPIDPublicKeyResponseCodec: Codec<VAPIDPublicKeyResponse> = {
   encode: (data: VAPIDPublicKeyResponse): object => ({
-    public_key: data.publicKey,
+    public_key: data.public_key,
   }),
-  decode: (data: any): VAPIDPublicKeyResponse => ({
-    publicKey: data.public_key,
+  decode: (encoded: any): VAPIDPublicKeyResponse => ({
+    public_key: encoded['public_key'],
   }),
 }

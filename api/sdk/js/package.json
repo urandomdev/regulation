@@ -32,6 +32,10 @@
       "import": "./dist/esm/regulation/server/handlers/plaid.js",
       "types": "./dist/esm/regulation/server/handlers/plaid.d.ts"
     },
+    "./rule": {
+      "import": "./dist/esm/regulation/server/handlers/rule.js",
+      "types": "./dist/esm/regulation/server/handlers/rule.d.ts"
+    },
     "./static/*": {
       "import": "./dist/esm/static/*.js",
       "types": "./dist/esm/static/*.d.ts"
@@ -51,5 +55,5 @@
   },
   "sideEffects": false,
   "type": "module",
-  "version": "0.5.0"
+  "version": "0.6.0"
 }
