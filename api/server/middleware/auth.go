@@ -31,18 +31,20 @@ func NewAuth(db *ent.Client, sessionManager *session.Manager) *Auth {
 func (a *Auth) Handle(ctx fiber.Ctx) error {
 	sessionID := ctx.Cookies(sessionCookieName)
 	if sessionID == "" {
-		return protocol.ErrorResponse{
+		ctx.Status(fiber.StatusTeapot)
+		return ctx.CBOR(protocol.ErrorResponse{
 			Code:    protocol.UnauthorizedError,
 			Message: "authentication required",
-		}
+		})
 	}
 
 	sess, err := a.sessionManager.Get(ctx, sessionID)
 	if err != nil {
-		return protocol.ErrorResponse{
+		ctx.Status(fiber.StatusTeapot)
+		return ctx.CBOR(protocol.ErrorResponse{
 			Code:    protocol.UnauthorizedError,
 			Message: "invalid or expired session",
-		}
+		})
 	}
 
 	user, err := a.db.User.Get(ctx, sess.UserID)
@@ -50,11 +52,13 @@ func (a *Auth) Handle(ctx fiber.Ctx) error {
 		if ent.IsNotFound(err) {
 			// User was deleted, invalidate session
 			_ = a.sessionManager.Delete(ctx, sessionID)
-			return protocol.ErrorResponse{
+			ctx.Status(fiber.StatusTeapot)
+			return ctx.CBOR(protocol.ErrorResponse{
 				Code:    protocol.UnauthorizedError,
 				Message: "user not found",
-			}
+			})
 		}
+
 		return fmt.Errorf("failed to load user: %w", err)
 	}
 
