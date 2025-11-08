@@ -31,6 +31,12 @@ const (
 	EdgeAccounts = "accounts"
 	// EdgePushSubscriptions holds the string denoting the push_subscriptions edge name in mutations.
 	EdgePushSubscriptions = "push_subscriptions"
+	// EdgeRules holds the string denoting the rules edge name in mutations.
+	EdgeRules = "rules"
+	// EdgeRuleExecutions holds the string denoting the rule_executions edge name in mutations.
+	EdgeRuleExecutions = "rule_executions"
+	// EdgeSavingsTransfers holds the string denoting the savings_transfers edge name in mutations.
+	EdgeSavingsTransfers = "savings_transfers"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// UserTable is the table that holds the user relation/edge.
@@ -62,6 +68,27 @@ const (
 	PushSubscriptionsInverseTable = "push_subscriptions"
 	// PushSubscriptionsColumn is the table column denoting the push_subscriptions relation/edge.
 	PushSubscriptionsColumn = "user_id"
+	// RulesTable is the table that holds the rules relation/edge.
+	RulesTable = "rules"
+	// RulesInverseTable is the table name for the Rule entity.
+	// It exists in this package in order to avoid circular dependency with the "rule" package.
+	RulesInverseTable = "rules"
+	// RulesColumn is the table column denoting the rules relation/edge.
+	RulesColumn = "user_id"
+	// RuleExecutionsTable is the table that holds the rule_executions relation/edge.
+	RuleExecutionsTable = "rule_executions"
+	// RuleExecutionsInverseTable is the table name for the RuleExecution entity.
+	// It exists in this package in order to avoid circular dependency with the "ruleexecution" package.
+	RuleExecutionsInverseTable = "rule_executions"
+	// RuleExecutionsColumn is the table column denoting the rule_executions relation/edge.
+	RuleExecutionsColumn = "user_id"
+	// SavingsTransfersTable is the table that holds the savings_transfers relation/edge.
+	SavingsTransfersTable = "savings_transfers"
+	// SavingsTransfersInverseTable is the table name for the SavingsTransfer entity.
+	// It exists in this package in order to avoid circular dependency with the "savingstransfer" package.
+	SavingsTransfersInverseTable = "savings_transfers"
+	// SavingsTransfersColumn is the table column denoting the savings_transfers relation/edge.
+	SavingsTransfersColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -173,6 +200,48 @@ func ByPushSubscriptions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 		sqlgraph.OrderByNeighborTerms(s, newPushSubscriptionsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByRulesCount orders the results by rules count.
+func ByRulesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRulesStep(), opts...)
+	}
+}
+
+// ByRules orders the results by rules terms.
+func ByRules(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRulesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByRuleExecutionsCount orders the results by rule_executions count.
+func ByRuleExecutionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRuleExecutionsStep(), opts...)
+	}
+}
+
+// ByRuleExecutions orders the results by rule_executions terms.
+func ByRuleExecutions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRuleExecutionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// BySavingsTransfersCount orders the results by savings_transfers count.
+func BySavingsTransfersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSavingsTransfersStep(), opts...)
+	}
+}
+
+// BySavingsTransfers orders the results by savings_transfers terms.
+func BySavingsTransfers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSavingsTransfersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -206,5 +275,26 @@ func newPushSubscriptionsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PushSubscriptionsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PushSubscriptionsTable, PushSubscriptionsColumn),
+	)
+}
+func newRulesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RulesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RulesTable, RulesColumn),
+	)
+}
+func newRuleExecutionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RuleExecutionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RuleExecutionsTable, RuleExecutionsColumn),
+	)
+}
+func newSavingsTransfersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SavingsTransfersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SavingsTransfersTable, SavingsTransfersColumn),
 	)
 }

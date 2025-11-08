@@ -58,9 +58,15 @@ type AccountEdges struct {
 	User *User `json:"user,omitempty"`
 	// Transactions holds the value of the transactions edge.
 	Transactions []*Transaction `json:"transactions,omitempty"`
+	// TargetRules holds the value of the target_rules edge.
+	TargetRules []*Rule `json:"target_rules,omitempty"`
+	// OutgoingTransfers holds the value of the outgoing_transfers edge.
+	OutgoingTransfers []*SavingsTransfer `json:"outgoing_transfers,omitempty"`
+	// IncomingTransfers holds the value of the incoming_transfers edge.
+	IncomingTransfers []*SavingsTransfer `json:"incoming_transfers,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [6]bool
 }
 
 // ItemOrErr returns the Item value or an error if the edge
@@ -92,6 +98,33 @@ func (e AccountEdges) TransactionsOrErr() ([]*Transaction, error) {
 		return e.Transactions, nil
 	}
 	return nil, &NotLoadedError{edge: "transactions"}
+}
+
+// TargetRulesOrErr returns the TargetRules value or an error if the edge
+// was not loaded in eager-loading.
+func (e AccountEdges) TargetRulesOrErr() ([]*Rule, error) {
+	if e.loadedTypes[3] {
+		return e.TargetRules, nil
+	}
+	return nil, &NotLoadedError{edge: "target_rules"}
+}
+
+// OutgoingTransfersOrErr returns the OutgoingTransfers value or an error if the edge
+// was not loaded in eager-loading.
+func (e AccountEdges) OutgoingTransfersOrErr() ([]*SavingsTransfer, error) {
+	if e.loadedTypes[4] {
+		return e.OutgoingTransfers, nil
+	}
+	return nil, &NotLoadedError{edge: "outgoing_transfers"}
+}
+
+// IncomingTransfersOrErr returns the IncomingTransfers value or an error if the edge
+// was not loaded in eager-loading.
+func (e AccountEdges) IncomingTransfersOrErr() ([]*SavingsTransfer, error) {
+	if e.loadedTypes[5] {
+		return e.IncomingTransfers, nil
+	}
+	return nil, &NotLoadedError{edge: "incoming_transfers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -229,6 +262,21 @@ func (_m *Account) QueryUser() *UserQuery {
 // QueryTransactions queries the "transactions" edge of the Account entity.
 func (_m *Account) QueryTransactions() *TransactionQuery {
 	return NewAccountClient(_m.config).QueryTransactions(_m)
+}
+
+// QueryTargetRules queries the "target_rules" edge of the Account entity.
+func (_m *Account) QueryTargetRules() *RuleQuery {
+	return NewAccountClient(_m.config).QueryTargetRules(_m)
+}
+
+// QueryOutgoingTransfers queries the "outgoing_transfers" edge of the Account entity.
+func (_m *Account) QueryOutgoingTransfers() *SavingsTransferQuery {
+	return NewAccountClient(_m.config).QueryOutgoingTransfers(_m)
+}
+
+// QueryIncomingTransfers queries the "incoming_transfers" edge of the Account entity.
+func (_m *Account) QueryIncomingTransfers() *SavingsTransferQuery {
+	return NewAccountClient(_m.config).QueryIncomingTransfers(_m)
 }
 
 // Update returns a builder for updating this Account.

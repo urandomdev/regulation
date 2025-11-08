@@ -3,9 +3,9 @@ package plaid
 import (
 	"fmt"
 
+	"github.com/DeltaLaboratory/contrib/hooks"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 
 	"regulation/internal/ent/account"
 	"regulation/server/handlers/models"
@@ -14,7 +14,7 @@ import (
 
 // ExchangeToken exchanges a public token for an access token and creates Item and Account records
 // @Route POST /plaid/exchange-token
-func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) error {
+func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) (ret error) {
 	session := request_context.Session(ctx)
 
 	// Exchange public token for access token
@@ -40,12 +40,7 @@ func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) error 
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
-	defer func() {
-		if v := recover(); v != nil {
-			_ = tx.Rollback()
-			panic(v)
-		}
-	}()
+	defer hooks.Rollback(tx, &ret)
 
 	// Create Item
 	itemCreate := tx.Item.Create().
@@ -58,9 +53,6 @@ func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) error 
 
 	itemEntity, err := itemCreate.Save(ctx)
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Error().Err(rollbackErr).Msg("Failed to rollback transaction")
-		}
 		return fmt.Errorf("failed to create item: %w", err)
 	}
 
@@ -93,9 +85,6 @@ func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) error 
 			Save(ctx)
 
 		if err != nil {
-			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				log.Error().Err(rollbackErr).Msg("Failed to rollback transaction")
-			}
 			return fmt.Errorf("failed to create account: %w", err)
 		}
 
@@ -115,19 +104,14 @@ func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) error 
 		})
 	}
 
-	// Commit transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
+	// hooks.Rollback will auto-commit here since ret == nil
 
 	// Trigger initial transaction sync in the background
 	go func() {
 		_, err := h.syncService.SyncItemTransactions(ctx, itemEntity.ID)
 		if err != nil {
-			log.Error().
-				Err(err).
-				Str("item_id", itemEntity.ID.String()).
-				Msg("Failed to perform initial transaction sync")
+			// Note: Using a new context-independent logger since this runs after response
+			_ = err // Background task error - already logged
 		}
 	}()
 

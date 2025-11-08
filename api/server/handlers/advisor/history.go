@@ -78,7 +78,7 @@ func (h *Handler) BudgetPlanFromHistory(ctx fiber.Ctx, req *BudgetPlanFromHistor
 	username := strings.TrimSpace(req.Username)
 	userEntity, err := h.db.User.Query().
 		Where(user.NicknameEQ(username)).
-		Only(ctx.Context())
+		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, protocol.ErrorResponse{
@@ -89,7 +89,7 @@ func (h *Handler) BudgetPlanFromHistory(ctx fiber.Ctx, req *BudgetPlanFromHistor
 		return nil, fmt.Errorf("failed to load user %q: %w", username, err)
 	}
 
-	expenses, err := h.expensesFromHistory(ctx.Context(), userEntity.ID)
+	expenses, err := h.expensesFromHistory(ctx, userEntity.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (h *Handler) BudgetPlanFromHistory(ctx fiber.Ctx, req *BudgetPlanFromHistor
 		Metadata:                metadata,
 	}
 
-	plan, err := h.service.GeneratePlan(ctx.Context(), planReq)
+	plan, err := h.service.GeneratePlan(ctx, planReq)
 	if err != nil {
 		return nil, err
 	}

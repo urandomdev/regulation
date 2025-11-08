@@ -36,5 +36,8 @@ func (User) Edges() []ent.Edge {
 		edge.To("items", Item.Type),
 		edge.To("accounts", Account.Type),
 		edge.To("push_subscriptions", PushSubscription.Type),
+		edge.To("rules", Rule.Type),
+		edge.To("rule_executions", RuleExecution.Type),
+		edge.To("savings_transfers", SavingsTransfer.Type),
 	}
 }

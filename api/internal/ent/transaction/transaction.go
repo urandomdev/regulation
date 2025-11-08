@@ -41,6 +41,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
 	EdgeAccount = "account"
+	// EdgeRuleExecutions holds the string denoting the rule_executions edge name in mutations.
+	EdgeRuleExecutions = "rule_executions"
 	// Table holds the table name of the transaction in the database.
 	Table = "transactions"
 	// AccountTable is the table that holds the account relation/edge.
@@ -50,6 +52,13 @@ const (
 	AccountInverseTable = "accounts"
 	// AccountColumn is the table column denoting the account relation/edge.
 	AccountColumn = "account_id"
+	// RuleExecutionsTable is the table that holds the rule_executions relation/edge.
+	RuleExecutionsTable = "rule_executions"
+	// RuleExecutionsInverseTable is the table name for the RuleExecution entity.
+	// It exists in this package in order to avoid circular dependency with the "ruleexecution" package.
+	RuleExecutionsInverseTable = "rule_executions"
+	// RuleExecutionsColumn is the table column denoting the rule_executions relation/edge.
+	RuleExecutionsColumn = "transaction_id"
 )
 
 // Columns holds all SQL columns for transaction fields.
@@ -167,10 +176,31 @@ func ByAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAccountStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByRuleExecutionsCount orders the results by rule_executions count.
+func ByRuleExecutionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRuleExecutionsStep(), opts...)
+	}
+}
+
+// ByRuleExecutions orders the results by rule_executions terms.
+func ByRuleExecutions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRuleExecutionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAccountStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AccountInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, AccountTable, AccountColumn),
+	)
+}
+func newRuleExecutionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RuleExecutionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RuleExecutionsTable, RuleExecutionsColumn),
 	)
 }

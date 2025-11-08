@@ -9,6 +9,8 @@ import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/predicate"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
 	"time"
@@ -236,6 +238,51 @@ func (_u *AccountUpdate) AddTransactions(v ...*Transaction) *AccountUpdate {
 	return _u.AddTransactionIDs(ids...)
 }
 
+// AddTargetRuleIDs adds the "target_rules" edge to the Rule entity by IDs.
+func (_u *AccountUpdate) AddTargetRuleIDs(ids ...uuid.UUID) *AccountUpdate {
+	_u.mutation.AddTargetRuleIDs(ids...)
+	return _u
+}
+
+// AddTargetRules adds the "target_rules" edges to the Rule entity.
+func (_u *AccountUpdate) AddTargetRules(v ...*Rule) *AccountUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTargetRuleIDs(ids...)
+}
+
+// AddOutgoingTransferIDs adds the "outgoing_transfers" edge to the SavingsTransfer entity by IDs.
+func (_u *AccountUpdate) AddOutgoingTransferIDs(ids ...uuid.UUID) *AccountUpdate {
+	_u.mutation.AddOutgoingTransferIDs(ids...)
+	return _u
+}
+
+// AddOutgoingTransfers adds the "outgoing_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdate) AddOutgoingTransfers(v ...*SavingsTransfer) *AccountUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOutgoingTransferIDs(ids...)
+}
+
+// AddIncomingTransferIDs adds the "incoming_transfers" edge to the SavingsTransfer entity by IDs.
+func (_u *AccountUpdate) AddIncomingTransferIDs(ids ...uuid.UUID) *AccountUpdate {
+	_u.mutation.AddIncomingTransferIDs(ids...)
+	return _u
+}
+
+// AddIncomingTransfers adds the "incoming_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdate) AddIncomingTransfers(v ...*SavingsTransfer) *AccountUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIncomingTransferIDs(ids...)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_u *AccountUpdate) Mutation() *AccountMutation {
 	return _u.mutation
@@ -272,6 +319,69 @@ func (_u *AccountUpdate) RemoveTransactions(v ...*Transaction) *AccountUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTransactionIDs(ids...)
+}
+
+// ClearTargetRules clears all "target_rules" edges to the Rule entity.
+func (_u *AccountUpdate) ClearTargetRules() *AccountUpdate {
+	_u.mutation.ClearTargetRules()
+	return _u
+}
+
+// RemoveTargetRuleIDs removes the "target_rules" edge to Rule entities by IDs.
+func (_u *AccountUpdate) RemoveTargetRuleIDs(ids ...uuid.UUID) *AccountUpdate {
+	_u.mutation.RemoveTargetRuleIDs(ids...)
+	return _u
+}
+
+// RemoveTargetRules removes "target_rules" edges to Rule entities.
+func (_u *AccountUpdate) RemoveTargetRules(v ...*Rule) *AccountUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTargetRuleIDs(ids...)
+}
+
+// ClearOutgoingTransfers clears all "outgoing_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdate) ClearOutgoingTransfers() *AccountUpdate {
+	_u.mutation.ClearOutgoingTransfers()
+	return _u
+}
+
+// RemoveOutgoingTransferIDs removes the "outgoing_transfers" edge to SavingsTransfer entities by IDs.
+func (_u *AccountUpdate) RemoveOutgoingTransferIDs(ids ...uuid.UUID) *AccountUpdate {
+	_u.mutation.RemoveOutgoingTransferIDs(ids...)
+	return _u
+}
+
+// RemoveOutgoingTransfers removes "outgoing_transfers" edges to SavingsTransfer entities.
+func (_u *AccountUpdate) RemoveOutgoingTransfers(v ...*SavingsTransfer) *AccountUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOutgoingTransferIDs(ids...)
+}
+
+// ClearIncomingTransfers clears all "incoming_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdate) ClearIncomingTransfers() *AccountUpdate {
+	_u.mutation.ClearIncomingTransfers()
+	return _u
+}
+
+// RemoveIncomingTransferIDs removes the "incoming_transfers" edge to SavingsTransfer entities by IDs.
+func (_u *AccountUpdate) RemoveIncomingTransferIDs(ids ...uuid.UUID) *AccountUpdate {
+	_u.mutation.RemoveIncomingTransferIDs(ids...)
+	return _u
+}
+
+// RemoveIncomingTransfers removes "incoming_transfers" edges to SavingsTransfer entities.
+func (_u *AccountUpdate) RemoveIncomingTransfers(v ...*SavingsTransfer) *AccountUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIncomingTransferIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -492,6 +602,141 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TargetRulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTargetRulesIDs(); len(nodes) > 0 && !_u.mutation.TargetRulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TargetRulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OutgoingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOutgoingTransfersIDs(); len(nodes) > 0 && !_u.mutation.OutgoingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OutgoingTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IncomingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedIncomingTransfersIDs(); len(nodes) > 0 && !_u.mutation.IncomingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IncomingTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -724,6 +969,51 @@ func (_u *AccountUpdateOne) AddTransactions(v ...*Transaction) *AccountUpdateOne
 	return _u.AddTransactionIDs(ids...)
 }
 
+// AddTargetRuleIDs adds the "target_rules" edge to the Rule entity by IDs.
+func (_u *AccountUpdateOne) AddTargetRuleIDs(ids ...uuid.UUID) *AccountUpdateOne {
+	_u.mutation.AddTargetRuleIDs(ids...)
+	return _u
+}
+
+// AddTargetRules adds the "target_rules" edges to the Rule entity.
+func (_u *AccountUpdateOne) AddTargetRules(v ...*Rule) *AccountUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTargetRuleIDs(ids...)
+}
+
+// AddOutgoingTransferIDs adds the "outgoing_transfers" edge to the SavingsTransfer entity by IDs.
+func (_u *AccountUpdateOne) AddOutgoingTransferIDs(ids ...uuid.UUID) *AccountUpdateOne {
+	_u.mutation.AddOutgoingTransferIDs(ids...)
+	return _u
+}
+
+// AddOutgoingTransfers adds the "outgoing_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdateOne) AddOutgoingTransfers(v ...*SavingsTransfer) *AccountUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOutgoingTransferIDs(ids...)
+}
+
+// AddIncomingTransferIDs adds the "incoming_transfers" edge to the SavingsTransfer entity by IDs.
+func (_u *AccountUpdateOne) AddIncomingTransferIDs(ids ...uuid.UUID) *AccountUpdateOne {
+	_u.mutation.AddIncomingTransferIDs(ids...)
+	return _u
+}
+
+// AddIncomingTransfers adds the "incoming_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdateOne) AddIncomingTransfers(v ...*SavingsTransfer) *AccountUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIncomingTransferIDs(ids...)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_u *AccountUpdateOne) Mutation() *AccountMutation {
 	return _u.mutation
@@ -760,6 +1050,69 @@ func (_u *AccountUpdateOne) RemoveTransactions(v ...*Transaction) *AccountUpdate
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTransactionIDs(ids...)
+}
+
+// ClearTargetRules clears all "target_rules" edges to the Rule entity.
+func (_u *AccountUpdateOne) ClearTargetRules() *AccountUpdateOne {
+	_u.mutation.ClearTargetRules()
+	return _u
+}
+
+// RemoveTargetRuleIDs removes the "target_rules" edge to Rule entities by IDs.
+func (_u *AccountUpdateOne) RemoveTargetRuleIDs(ids ...uuid.UUID) *AccountUpdateOne {
+	_u.mutation.RemoveTargetRuleIDs(ids...)
+	return _u
+}
+
+// RemoveTargetRules removes "target_rules" edges to Rule entities.
+func (_u *AccountUpdateOne) RemoveTargetRules(v ...*Rule) *AccountUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTargetRuleIDs(ids...)
+}
+
+// ClearOutgoingTransfers clears all "outgoing_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdateOne) ClearOutgoingTransfers() *AccountUpdateOne {
+	_u.mutation.ClearOutgoingTransfers()
+	return _u
+}
+
+// RemoveOutgoingTransferIDs removes the "outgoing_transfers" edge to SavingsTransfer entities by IDs.
+func (_u *AccountUpdateOne) RemoveOutgoingTransferIDs(ids ...uuid.UUID) *AccountUpdateOne {
+	_u.mutation.RemoveOutgoingTransferIDs(ids...)
+	return _u
+}
+
+// RemoveOutgoingTransfers removes "outgoing_transfers" edges to SavingsTransfer entities.
+func (_u *AccountUpdateOne) RemoveOutgoingTransfers(v ...*SavingsTransfer) *AccountUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOutgoingTransferIDs(ids...)
+}
+
+// ClearIncomingTransfers clears all "incoming_transfers" edges to the SavingsTransfer entity.
+func (_u *AccountUpdateOne) ClearIncomingTransfers() *AccountUpdateOne {
+	_u.mutation.ClearIncomingTransfers()
+	return _u
+}
+
+// RemoveIncomingTransferIDs removes the "incoming_transfers" edge to SavingsTransfer entities by IDs.
+func (_u *AccountUpdateOne) RemoveIncomingTransferIDs(ids ...uuid.UUID) *AccountUpdateOne {
+	_u.mutation.RemoveIncomingTransferIDs(ids...)
+	return _u
+}
+
+// RemoveIncomingTransfers removes "incoming_transfers" edges to SavingsTransfer entities.
+func (_u *AccountUpdateOne) RemoveIncomingTransfers(v ...*SavingsTransfer) *AccountUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIncomingTransferIDs(ids...)
 }
 
 // Where appends a list predicates to the AccountUpdate builder.
@@ -1010,6 +1363,141 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TargetRulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTargetRulesIDs(); len(nodes) > 0 && !_u.mutation.TargetRulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TargetRulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OutgoingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOutgoingTransfersIDs(); len(nodes) > 0 && !_u.mutation.OutgoingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OutgoingTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IncomingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedIncomingTransfersIDs(); len(nodes) > 0 && !_u.mutation.IncomingTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IncomingTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

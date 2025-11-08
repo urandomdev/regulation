@@ -10,7 +10,7 @@ import (
 type Handler struct {
 	db             *ent.Client
 	sessionManager *session.Manager
-	plaidClient    plaid.PlaidClient
+	plaidClient    plaid.Client
 	syncService    *plaid.SyncService
 }
 
@@ -18,7 +18,7 @@ type Handler struct {
 func New(
 	db *ent.Client,
 	sessionManager *session.Manager,
-	plaidClient plaid.PlaidClient,
+	plaidClient plaid.Client,
 	syncService *plaid.SyncService,
 ) *Handler {
 	return &Handler{

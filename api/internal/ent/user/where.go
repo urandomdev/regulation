@@ -390,6 +390,75 @@ func HasPushSubscriptionsWith(preds ...predicate.PushSubscription) predicate.Use
 	})
 }
 
+// HasRules applies the HasEdge predicate on the "rules" edge.
+func HasRules() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RulesTable, RulesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRulesWith applies the HasEdge predicate on the "rules" edge with a given conditions (other predicates).
+func HasRulesWith(preds ...predicate.Rule) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newRulesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRuleExecutions applies the HasEdge predicate on the "rule_executions" edge.
+func HasRuleExecutions() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RuleExecutionsTable, RuleExecutionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRuleExecutionsWith applies the HasEdge predicate on the "rule_executions" edge with a given conditions (other predicates).
+func HasRuleExecutionsWith(preds ...predicate.RuleExecution) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newRuleExecutionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSavingsTransfers applies the HasEdge predicate on the "savings_transfers" edge.
+func HasSavingsTransfers() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SavingsTransfersTable, SavingsTransfersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSavingsTransfersWith applies the HasEdge predicate on the "savings_transfers" edge with a given conditions (other predicates).
+func HasSavingsTransfersWith(preds ...predicate.SavingsTransfer) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newSavingsTransfersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

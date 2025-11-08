@@ -7,11 +7,9 @@ import (
 
 	"regulation/internal/config"
 	"regulation/internal/ent"
-	"regulation/internal/ent/user"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/DeltaLaboratory/entcache"
-	"github.com/DeltaLaboratory/password"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/rueidis"

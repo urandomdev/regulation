@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +18,7 @@ func main() {
 	// Create and run server
 	srv := server.NewServer()
 	if err := srv.Run(ctx); err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error starting server: %s\n", err)
+		os.Exit(1)
 	}
 }

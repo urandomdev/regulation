@@ -135,6 +135,181 @@ var (
 			},
 		},
 	}
+	// RulesColumns holds the columns for the "rules" table.
+	RulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString},
+		{Name: "category", Type: field.TypeEnum, Enums: []string{"Dining", "Groceries", "Transport", "Shopping", "Subscriptions", "Entertainment", "Bills", "Misc"}},
+		{Name: "min_amount_cents", Type: field.TypeInt64, Nullable: true},
+		{Name: "max_amount_cents", Type: field.TypeInt64, Nullable: true},
+		{Name: "action_type", Type: field.TypeEnum, Enums: []string{"multiply", "fixed"}},
+		{Name: "action_value", Type: field.TypeFloat64},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "priority", Type: field.TypeInt, Default: 0},
+		{Name: "execution_count", Type: field.TypeInt, Default: 0},
+		{Name: "total_saved_cents", Type: field.TypeInt64, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "target_account_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// RulesTable holds the schema information for the "rules" table.
+	RulesTable = &schema.Table{
+		Name:       "rules",
+		Columns:    RulesColumns,
+		PrimaryKey: []*schema.Column{RulesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "rules_accounts_target_rules",
+				Columns:    []*schema.Column{RulesColumns[13]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "rules_users_rules",
+				Columns:    []*schema.Column{RulesColumns[14]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rule_user_id_is_active",
+				Unique:  false,
+				Columns: []*schema.Column{RulesColumns[14], RulesColumns[7]},
+			},
+			{
+				Name:    "rule_category",
+				Unique:  false,
+				Columns: []*schema.Column{RulesColumns[2]},
+			},
+			{
+				Name:    "rule_priority",
+				Unique:  false,
+				Columns: []*schema.Column{RulesColumns[8]},
+			},
+		},
+	}
+	// RuleExecutionsColumns holds the columns for the "rule_executions" table.
+	RuleExecutionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "amount_cents", Type: field.TypeInt64},
+		{Name: "source_account_id", Type: field.TypeUUID},
+		{Name: "target_account_id", Type: field.TypeUUID},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "completed", "failed"}, Default: "pending"},
+		{Name: "error_message", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "rule_id", Type: field.TypeUUID},
+		{Name: "transaction_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// RuleExecutionsTable holds the schema information for the "rule_executions" table.
+	RuleExecutionsTable = &schema.Table{
+		Name:       "rule_executions",
+		Columns:    RuleExecutionsColumns,
+		PrimaryKey: []*schema.Column{RuleExecutionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "rule_executions_rules_executions",
+				Columns:    []*schema.Column{RuleExecutionsColumns[8]},
+				RefColumns: []*schema.Column{RulesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "rule_executions_transactions_rule_executions",
+				Columns:    []*schema.Column{RuleExecutionsColumns[9]},
+				RefColumns: []*schema.Column{TransactionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "rule_executions_users_rule_executions",
+				Columns:    []*schema.Column{RuleExecutionsColumns[10]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ruleexecution_rule_id_transaction_id",
+				Unique:  true,
+				Columns: []*schema.Column{RuleExecutionsColumns[8], RuleExecutionsColumns[9]},
+			},
+			{
+				Name:    "ruleexecution_user_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{RuleExecutionsColumns[10], RuleExecutionsColumns[6]},
+			},
+			{
+				Name:    "ruleexecution_status",
+				Unique:  false,
+				Columns: []*schema.Column{RuleExecutionsColumns[4]},
+			},
+		},
+	}
+	// SavingsTransfersColumns holds the columns for the "savings_transfers" table.
+	SavingsTransfersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "amount_cents", Type: field.TypeInt64},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"suggested", "approved", "executed", "cancelled", "failed"}, Default: "suggested"},
+		{Name: "plaid_transfer_id", Type: field.TypeString, Nullable: true},
+		{Name: "error_message", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "executed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "source_account_id", Type: field.TypeUUID},
+		{Name: "target_account_id", Type: field.TypeUUID},
+		{Name: "rule_execution_id", Type: field.TypeUUID, Unique: true},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// SavingsTransfersTable holds the schema information for the "savings_transfers" table.
+	SavingsTransfersTable = &schema.Table{
+		Name:       "savings_transfers",
+		Columns:    SavingsTransfersColumns,
+		PrimaryKey: []*schema.Column{SavingsTransfersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "savings_transfers_accounts_outgoing_transfers",
+				Columns:    []*schema.Column{SavingsTransfersColumns[7]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "savings_transfers_accounts_incoming_transfers",
+				Columns:    []*schema.Column{SavingsTransfersColumns[8]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "savings_transfers_rule_executions_transfer",
+				Columns:    []*schema.Column{SavingsTransfersColumns[9]},
+				RefColumns: []*schema.Column{RuleExecutionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "savings_transfers_users_savings_transfers",
+				Columns:    []*schema.Column{SavingsTransfersColumns[10]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "savingstransfer_user_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{SavingsTransfersColumns[10], SavingsTransfersColumns[2]},
+			},
+			{
+				Name:    "savingstransfer_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{SavingsTransfersColumns[5]},
+			},
+			{
+				Name:    "savingstransfer_rule_execution_id",
+				Unique:  true,
+				Columns: []*schema.Column{SavingsTransfersColumns[9]},
+			},
+		},
+	}
 	// SyncCursorsColumns holds the columns for the "sync_cursors" table.
 	SyncCursorsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -242,6 +417,9 @@ var (
 		AccountsTable,
 		ItemsTable,
 		PushSubscriptionsTable,
+		RulesTable,
+		RuleExecutionsTable,
+		SavingsTransfersTable,
 		SyncCursorsTable,
 		TransactionsTable,
 		UsersTable,
@@ -253,6 +431,15 @@ func init() {
 	AccountsTable.ForeignKeys[1].RefTable = UsersTable
 	ItemsTable.ForeignKeys[0].RefTable = UsersTable
 	PushSubscriptionsTable.ForeignKeys[0].RefTable = UsersTable
+	RulesTable.ForeignKeys[0].RefTable = AccountsTable
+	RulesTable.ForeignKeys[1].RefTable = UsersTable
+	RuleExecutionsTable.ForeignKeys[0].RefTable = RulesTable
+	RuleExecutionsTable.ForeignKeys[1].RefTable = TransactionsTable
+	RuleExecutionsTable.ForeignKeys[2].RefTable = UsersTable
+	SavingsTransfersTable.ForeignKeys[0].RefTable = AccountsTable
+	SavingsTransfersTable.ForeignKeys[1].RefTable = AccountsTable
+	SavingsTransfersTable.ForeignKeys[2].RefTable = RuleExecutionsTable
+	SavingsTransfersTable.ForeignKeys[3].RefTable = UsersTable
 	SyncCursorsTable.ForeignKeys[0].RefTable = ItemsTable
 	TransactionsTable.ForeignKeys[0].RefTable = AccountsTable
 	UsersTable.ForeignKeys[0].RefTable = UsersTable

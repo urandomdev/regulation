@@ -41,7 +41,7 @@ type Server struct {
 	cacheLock      rueidislock.Locker
 	sessionManager *session.Manager
 
-	plaidClient plaid.PlaidClient
+	plaidClient plaid.Client
 	syncService *plaid.SyncService
 
 	logger zerolog.Logger
@@ -130,7 +130,7 @@ func (s *Server) init(ctx context.Context) error {
 	}
 
 	// Initialize sync service
-	s.syncService = plaid.NewSyncService(s.plaidClient, s.db)
+	s.syncService = plaid.NewSyncService(s.plaidClient, s.db, s.config)
 
 	s.route()
 

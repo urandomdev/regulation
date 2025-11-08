@@ -679,6 +679,29 @@ func HasAccountWith(preds ...predicate.Account) predicate.Transaction {
 	})
 }
 
+// HasRuleExecutions applies the HasEdge predicate on the "rule_executions" edge.
+func HasRuleExecutions() predicate.Transaction {
+	return predicate.Transaction(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RuleExecutionsTable, RuleExecutionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRuleExecutionsWith applies the HasEdge predicate on the "rule_executions" edge with a given conditions (other predicates).
+func HasRuleExecutionsWith(preds ...predicate.RuleExecution) predicate.Transaction {
+	return predicate.Transaction(func(s *sql.Selector) {
+		step := newRuleExecutionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Transaction) predicate.Transaction {
 	return predicate.Transaction(sql.AndPredicates(predicates...))

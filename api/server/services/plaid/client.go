@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// PlaidClient defines the interface for interacting with Plaid API.
+// Client defines the interface for interacting with Plaid API.
 // This interface allows for easy mocking in tests.
-type PlaidClient interface {
+type Client interface {
 	// CreateLinkToken creates a link token for initializing Plaid Link
 	CreateLinkToken(ctx context.Context, userID string) (string, error)
 

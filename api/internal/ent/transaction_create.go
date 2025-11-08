@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regulation/internal/ent/account"
+	"regulation/internal/ent/ruleexecution"
 	"regulation/internal/ent/transaction"
 	"time"
 
@@ -162,6 +163,21 @@ func (_c *TransactionCreate) SetNillableID(v *uuid.UUID) *TransactionCreate {
 // SetAccount sets the "account" edge to the Account entity.
 func (_c *TransactionCreate) SetAccount(v *Account) *TransactionCreate {
 	return _c.SetAccountID(v.ID)
+}
+
+// AddRuleExecutionIDs adds the "rule_executions" edge to the RuleExecution entity by IDs.
+func (_c *TransactionCreate) AddRuleExecutionIDs(ids ...uuid.UUID) *TransactionCreate {
+	_c.mutation.AddRuleExecutionIDs(ids...)
+	return _c
+}
+
+// AddRuleExecutions adds the "rule_executions" edges to the RuleExecution entity.
+func (_c *TransactionCreate) AddRuleExecutions(v ...*RuleExecution) *TransactionCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddRuleExecutionIDs(ids...)
 }
 
 // Mutation returns the TransactionMutation object of the builder.
@@ -358,6 +374,22 @@ func (_c *TransactionCreate) createSpec() (*Transaction, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.AccountID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.RuleExecutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

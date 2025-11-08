@@ -7,25 +7,29 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
+	"regulation/internal/config"
 	"regulation/internal/ent"
 	entaccount "regulation/internal/ent/account"
 	entitem "regulation/internal/ent/item"
 	entsynccursor "regulation/internal/ent/synccursor"
 	enttransaction "regulation/internal/ent/transaction"
 	"regulation/server/services"
+	"regulation/server/services/rule"
 )
 
 // SyncService handles transaction synchronization from Plaid
 type SyncService struct {
-	plaidClient PlaidClient
+	plaidClient Client
 	entClient   *ent.Client
+	ruleEngine  *rule.Engine
 }
 
 // NewSyncService creates a new transaction sync service
-func NewSyncService(plaidClient PlaidClient, entClient *ent.Client) *SyncService {
+func NewSyncService(plaidClient Client, entClient *ent.Client, cfg *config.Config) *SyncService {
 	return &SyncService{
 		plaidClient: plaidClient,
 		entClient:   entClient,
+		ruleEngine:  rule.NewEngine(entClient, cfg),
 	}
 }
 
@@ -167,6 +171,32 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 				Str("transaction_id", tx.TransactionID).
 				Msg("Failed to save transaction")
 			continue
+		}
+
+		// NEW: Process rules for non-pending transactions
+		if !tx.Pending {
+			// Fetch the saved transaction entity
+			entTx, err := s.entClient.Transaction.
+				Query().
+				Where(enttransaction.PlaidID(tx.TransactionID)).
+				Only(ctx)
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Str("transaction_id", tx.TransactionID).
+					Msg("Failed to fetch transaction for rule processing")
+				continue
+			}
+
+			// Evaluate and execute rules
+			if err := s.ruleEngine.ProcessTransaction(ctx, entTx); err != nil {
+				log.Error().
+					Err(err).
+					Str("transaction_id", tx.TransactionID).
+					Msg("Failed to process rules for transaction")
+				// Don't fail the sync, just log and continue
+			}
 		}
 	}
 

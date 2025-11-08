@@ -46,6 +46,12 @@ const (
 	EdgeUser = "user"
 	// EdgeTransactions holds the string denoting the transactions edge name in mutations.
 	EdgeTransactions = "transactions"
+	// EdgeTargetRules holds the string denoting the target_rules edge name in mutations.
+	EdgeTargetRules = "target_rules"
+	// EdgeOutgoingTransfers holds the string denoting the outgoing_transfers edge name in mutations.
+	EdgeOutgoingTransfers = "outgoing_transfers"
+	// EdgeIncomingTransfers holds the string denoting the incoming_transfers edge name in mutations.
+	EdgeIncomingTransfers = "incoming_transfers"
 	// Table holds the table name of the account in the database.
 	Table = "accounts"
 	// ItemTable is the table that holds the item relation/edge.
@@ -69,6 +75,27 @@ const (
 	TransactionsInverseTable = "transactions"
 	// TransactionsColumn is the table column denoting the transactions relation/edge.
 	TransactionsColumn = "account_id"
+	// TargetRulesTable is the table that holds the target_rules relation/edge.
+	TargetRulesTable = "rules"
+	// TargetRulesInverseTable is the table name for the Rule entity.
+	// It exists in this package in order to avoid circular dependency with the "rule" package.
+	TargetRulesInverseTable = "rules"
+	// TargetRulesColumn is the table column denoting the target_rules relation/edge.
+	TargetRulesColumn = "target_account_id"
+	// OutgoingTransfersTable is the table that holds the outgoing_transfers relation/edge.
+	OutgoingTransfersTable = "savings_transfers"
+	// OutgoingTransfersInverseTable is the table name for the SavingsTransfer entity.
+	// It exists in this package in order to avoid circular dependency with the "savingstransfer" package.
+	OutgoingTransfersInverseTable = "savings_transfers"
+	// OutgoingTransfersColumn is the table column denoting the outgoing_transfers relation/edge.
+	OutgoingTransfersColumn = "source_account_id"
+	// IncomingTransfersTable is the table that holds the incoming_transfers relation/edge.
+	IncomingTransfersTable = "savings_transfers"
+	// IncomingTransfersInverseTable is the table name for the SavingsTransfer entity.
+	// It exists in this package in order to avoid circular dependency with the "savingstransfer" package.
+	IncomingTransfersInverseTable = "savings_transfers"
+	// IncomingTransfersColumn is the table column denoting the incoming_transfers relation/edge.
+	IncomingTransfersColumn = "target_account_id"
 )
 
 // Columns holds all SQL columns for account fields.
@@ -240,6 +267,48 @@ func ByTransactions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTransactionsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByTargetRulesCount orders the results by target_rules count.
+func ByTargetRulesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTargetRulesStep(), opts...)
+	}
+}
+
+// ByTargetRules orders the results by target_rules terms.
+func ByTargetRules(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTargetRulesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOutgoingTransfersCount orders the results by outgoing_transfers count.
+func ByOutgoingTransfersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOutgoingTransfersStep(), opts...)
+	}
+}
+
+// ByOutgoingTransfers orders the results by outgoing_transfers terms.
+func ByOutgoingTransfers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOutgoingTransfersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByIncomingTransfersCount orders the results by incoming_transfers count.
+func ByIncomingTransfersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newIncomingTransfersStep(), opts...)
+	}
+}
+
+// ByIncomingTransfers orders the results by incoming_transfers terms.
+func ByIncomingTransfers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newIncomingTransfersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newItemStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -259,5 +328,26 @@ func newTransactionsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TransactionsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, TransactionsTable, TransactionsColumn),
+	)
+}
+func newTargetRulesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TargetRulesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TargetRulesTable, TargetRulesColumn),
+	)
+}
+func newOutgoingTransfersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OutgoingTransfersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OutgoingTransfersTable, OutgoingTransfersColumn),
+	)
+}
+func newIncomingTransfersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(IncomingTransfersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, IncomingTransfersTable, IncomingTransfersColumn),
 	)
 }

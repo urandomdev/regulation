@@ -18,7 +18,7 @@ func (h *Handler) BudgetPlan(ctx fiber.Ctx, req *advisorsvc.BudgetPlanRequest) (
 		}
 	}
 
-	resp, err := h.service.GeneratePlan(ctx.Context(), req)
+	resp, err := h.service.GeneratePlan(ctx, req)
 	if err != nil {
 		return nil, err
 	}

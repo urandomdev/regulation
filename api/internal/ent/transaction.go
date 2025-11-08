@@ -54,9 +54,11 @@ type Transaction struct {
 type TransactionEdges struct {
 	// Account holds the value of the account edge.
 	Account *Account `json:"account,omitempty"`
+	// RuleExecutions holds the value of the rule_executions edge.
+	RuleExecutions []*RuleExecution `json:"rule_executions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // AccountOrErr returns the Account value or an error if the edge
@@ -68,6 +70,15 @@ func (e TransactionEdges) AccountOrErr() (*Account, error) {
 		return nil, &NotFoundError{label: account.Label}
 	}
 	return nil, &NotLoadedError{edge: "account"}
+}
+
+// RuleExecutionsOrErr returns the RuleExecutions value or an error if the edge
+// was not loaded in eager-loading.
+func (e TransactionEdges) RuleExecutionsOrErr() ([]*RuleExecution, error) {
+	if e.loadedTypes[1] {
+		return e.RuleExecutions, nil
+	}
+	return nil, &NotLoadedError{edge: "rule_executions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -198,6 +209,11 @@ func (_m *Transaction) Value(name string) (ent.Value, error) {
 // QueryAccount queries the "account" edge of the Transaction entity.
 func (_m *Transaction) QueryAccount() *AccountQuery {
 	return NewTransactionClient(_m.config).QueryAccount(_m)
+}
+
+// QueryRuleExecutions queries the "rule_executions" edge of the Transaction entity.
+func (_m *Transaction) QueryRuleExecutions() *RuleExecutionQuery {
+	return NewTransactionClient(_m.config).QueryRuleExecutions(_m)
 }
 
 // Update returns a builder for updating this Transaction.

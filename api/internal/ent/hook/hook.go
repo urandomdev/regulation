@@ -44,6 +44,42 @@ func (f PushSubscriptionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PushSubscriptionMutation", m)
 }
 
+// The RuleFunc type is an adapter to allow the use of ordinary
+// function as Rule mutator.
+type RuleFunc func(context.Context, *ent.RuleMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RuleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RuleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RuleMutation", m)
+}
+
+// The RuleExecutionFunc type is an adapter to allow the use of ordinary
+// function as RuleExecution mutator.
+type RuleExecutionFunc func(context.Context, *ent.RuleExecutionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RuleExecutionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RuleExecutionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RuleExecutionMutation", m)
+}
+
+// The SavingsTransferFunc type is an adapter to allow the use of ordinary
+// function as SavingsTransfer mutator.
+type SavingsTransferFunc func(context.Context, *ent.SavingsTransferMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SavingsTransferFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SavingsTransferMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SavingsTransferMutation", m)
+}
+
 // The SyncCursorFunc type is an adapter to allow the use of ordinary
 // function as SyncCursor mutator.
 type SyncCursorFunc func(context.Context, *ent.SyncCursorMutation) (ent.Value, error)

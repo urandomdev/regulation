@@ -43,9 +43,15 @@ type UserEdges struct {
 	Accounts []*Account `json:"accounts,omitempty"`
 	// PushSubscriptions holds the value of the push_subscriptions edge.
 	PushSubscriptions []*PushSubscription `json:"push_subscriptions,omitempty"`
+	// Rules holds the value of the rules edge.
+	Rules []*Rule `json:"rules,omitempty"`
+	// RuleExecutions holds the value of the rule_executions edge.
+	RuleExecutions []*RuleExecution `json:"rule_executions,omitempty"`
+	// SavingsTransfers holds the value of the savings_transfers edge.
+	SavingsTransfers []*SavingsTransfer `json:"savings_transfers,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [8]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -93,6 +99,33 @@ func (e UserEdges) PushSubscriptionsOrErr() ([]*PushSubscription, error) {
 		return e.PushSubscriptions, nil
 	}
 	return nil, &NotLoadedError{edge: "push_subscriptions"}
+}
+
+// RulesOrErr returns the Rules value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) RulesOrErr() ([]*Rule, error) {
+	if e.loadedTypes[5] {
+		return e.Rules, nil
+	}
+	return nil, &NotLoadedError{edge: "rules"}
+}
+
+// RuleExecutionsOrErr returns the RuleExecutions value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) RuleExecutionsOrErr() ([]*RuleExecution, error) {
+	if e.loadedTypes[6] {
+		return e.RuleExecutions, nil
+	}
+	return nil, &NotLoadedError{edge: "rule_executions"}
+}
+
+// SavingsTransfersOrErr returns the SavingsTransfers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) SavingsTransfersOrErr() ([]*SavingsTransfer, error) {
+	if e.loadedTypes[7] {
+		return e.SavingsTransfers, nil
+	}
+	return nil, &NotLoadedError{edge: "savings_transfers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -190,6 +223,21 @@ func (_m *User) QueryAccounts() *AccountQuery {
 // QueryPushSubscriptions queries the "push_subscriptions" edge of the User entity.
 func (_m *User) QueryPushSubscriptions() *PushSubscriptionQuery {
 	return NewUserClient(_m.config).QueryPushSubscriptions(_m)
+}
+
+// QueryRules queries the "rules" edge of the User entity.
+func (_m *User) QueryRules() *RuleQuery {
+	return NewUserClient(_m.config).QueryRules(_m)
+}
+
+// QueryRuleExecutions queries the "rule_executions" edge of the User entity.
+func (_m *User) QueryRuleExecutions() *RuleExecutionQuery {
+	return NewUserClient(_m.config).QueryRuleExecutions(_m)
+}
+
+// QuerySavingsTransfers queries the "savings_transfers" edge of the User entity.
+func (_m *User) QuerySavingsTransfers() *SavingsTransferQuery {
+	return NewUserClient(_m.config).QuerySavingsTransfers(_m)
 }
 
 // Update returns a builder for updating this User.

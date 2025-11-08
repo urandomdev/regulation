@@ -36,15 +36,15 @@ type WebPushSubscription struct {
 	P256DH   string `json:"p256dh"`
 }
 
-// NotificationPayload represents the notification data to send
-type NotificationPayload struct {
+// Payload represents the notification data to send
+type Payload struct {
 	Title string `cbor:"title" json:"title"`
 	Body  string `cbor:"body" json:"body"`
 	URL   string `cbor:"url,omitempty" json:"url,omitempty"`
 }
 
 // SendWebPush sends a web push notification to a subscriber
-func (s *Service) SendWebPush(ctx context.Context, subscription *WebPushSubscription, payload *NotificationPayload) error {
+func (s *Service) SendWebPush(ctx context.Context, subscription *WebPushSubscription, payload *Payload) error {
 	if s.config.WebPush == nil || !s.config.WebPush.HasWebPush() {
 		return errors.New("web push is not configured")
 	}
@@ -101,7 +101,7 @@ func (s *Service) SendWebPush(ctx context.Context, subscription *WebPushSubscrip
 }
 
 // SendToUser sends a web push notification to all active subscriptions for a user
-func (s *Service) SendToUser(ctx context.Context, userID uuid.UUID, payload *NotificationPayload) (int, []error) {
+func (s *Service) SendToUser(ctx context.Context, userID uuid.UUID, payload *Payload) (int, []error) {
 	if s.config.WebPush == nil || !s.config.WebPush.HasWebPush() {
 		return 0, []error{errors.New("web push is not configured")}
 	}

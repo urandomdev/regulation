@@ -14,6 +14,9 @@ import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/pushsubscription"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/ruleexecution"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/synccursor"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
@@ -38,6 +41,12 @@ type Client struct {
 	Item *ItemClient
 	// PushSubscription is the client for interacting with the PushSubscription builders.
 	PushSubscription *PushSubscriptionClient
+	// Rule is the client for interacting with the Rule builders.
+	Rule *RuleClient
+	// RuleExecution is the client for interacting with the RuleExecution builders.
+	RuleExecution *RuleExecutionClient
+	// SavingsTransfer is the client for interacting with the SavingsTransfer builders.
+	SavingsTransfer *SavingsTransferClient
 	// SyncCursor is the client for interacting with the SyncCursor builders.
 	SyncCursor *SyncCursorClient
 	// Transaction is the client for interacting with the Transaction builders.
@@ -58,6 +67,9 @@ func (c *Client) init() {
 	c.Account = NewAccountClient(c.config)
 	c.Item = NewItemClient(c.config)
 	c.PushSubscription = NewPushSubscriptionClient(c.config)
+	c.Rule = NewRuleClient(c.config)
+	c.RuleExecution = NewRuleExecutionClient(c.config)
+	c.SavingsTransfer = NewSavingsTransferClient(c.config)
 	c.SyncCursor = NewSyncCursorClient(c.config)
 	c.Transaction = NewTransactionClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -156,6 +168,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Account:          NewAccountClient(cfg),
 		Item:             NewItemClient(cfg),
 		PushSubscription: NewPushSubscriptionClient(cfg),
+		Rule:             NewRuleClient(cfg),
+		RuleExecution:    NewRuleExecutionClient(cfg),
+		SavingsTransfer:  NewSavingsTransferClient(cfg),
 		SyncCursor:       NewSyncCursorClient(cfg),
 		Transaction:      NewTransactionClient(cfg),
 		User:             NewUserClient(cfg),
@@ -181,6 +196,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Account:          NewAccountClient(cfg),
 		Item:             NewItemClient(cfg),
 		PushSubscription: NewPushSubscriptionClient(cfg),
+		Rule:             NewRuleClient(cfg),
+		RuleExecution:    NewRuleExecutionClient(cfg),
+		SavingsTransfer:  NewSavingsTransferClient(cfg),
 		SyncCursor:       NewSyncCursorClient(cfg),
 		Transaction:      NewTransactionClient(cfg),
 		User:             NewUserClient(cfg),
@@ -213,7 +231,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Account, c.Item, c.PushSubscription, c.SyncCursor, c.Transaction, c.User,
+		c.Account, c.Item, c.PushSubscription, c.Rule, c.RuleExecution,
+		c.SavingsTransfer, c.SyncCursor, c.Transaction, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -223,7 +242,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Account, c.Item, c.PushSubscription, c.SyncCursor, c.Transaction, c.User,
+		c.Account, c.Item, c.PushSubscription, c.Rule, c.RuleExecution,
+		c.SavingsTransfer, c.SyncCursor, c.Transaction, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -238,6 +258,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Item.mutate(ctx, m)
 	case *PushSubscriptionMutation:
 		return c.PushSubscription.mutate(ctx, m)
+	case *RuleMutation:
+		return c.Rule.mutate(ctx, m)
+	case *RuleExecutionMutation:
+		return c.RuleExecution.mutate(ctx, m)
+	case *SavingsTransferMutation:
+		return c.SavingsTransfer.mutate(ctx, m)
 	case *SyncCursorMutation:
 		return c.SyncCursor.mutate(ctx, m)
 	case *TransactionMutation:
@@ -398,6 +424,54 @@ func (c *AccountClient) QueryTransactions(_m *Account) *TransactionQuery {
 			sqlgraph.From(account.Table, account.FieldID, id),
 			sqlgraph.To(transaction.Table, transaction.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, account.TransactionsTable, account.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTargetRules queries the target_rules edge of a Account.
+func (c *AccountClient) QueryTargetRules(_m *Account) *RuleQuery {
+	query := (&RuleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(rule.Table, rule.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.TargetRulesTable, account.TargetRulesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOutgoingTransfers queries the outgoing_transfers edge of a Account.
+func (c *AccountClient) QueryOutgoingTransfers(_m *Account) *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.OutgoingTransfersTable, account.OutgoingTransfersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryIncomingTransfers queries the incoming_transfers edge of a Account.
+func (c *AccountClient) QueryIncomingTransfers(_m *Account) *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.IncomingTransfersTable, account.IncomingTransfersColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -760,6 +834,581 @@ func (c *PushSubscriptionClient) mutate(ctx context.Context, m *PushSubscription
 	}
 }
 
+// RuleClient is a client for the Rule schema.
+type RuleClient struct {
+	config
+}
+
+// NewRuleClient returns a client for the Rule from the given config.
+func NewRuleClient(c config) *RuleClient {
+	return &RuleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rule.Hooks(f(g(h())))`.
+func (c *RuleClient) Use(hooks ...Hook) {
+	c.hooks.Rule = append(c.hooks.Rule, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rule.Intercept(f(g(h())))`.
+func (c *RuleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Rule = append(c.inters.Rule, interceptors...)
+}
+
+// Create returns a builder for creating a Rule entity.
+func (c *RuleClient) Create() *RuleCreate {
+	mutation := newRuleMutation(c.config, OpCreate)
+	return &RuleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Rule entities.
+func (c *RuleClient) CreateBulk(builders ...*RuleCreate) *RuleCreateBulk {
+	return &RuleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RuleClient) MapCreateBulk(slice any, setFunc func(*RuleCreate, int)) *RuleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RuleCreateBulk{err: fmt.Errorf("calling to RuleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RuleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RuleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Rule.
+func (c *RuleClient) Update() *RuleUpdate {
+	mutation := newRuleMutation(c.config, OpUpdate)
+	return &RuleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RuleClient) UpdateOne(_m *Rule) *RuleUpdateOne {
+	mutation := newRuleMutation(c.config, OpUpdateOne, withRule(_m))
+	return &RuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RuleClient) UpdateOneID(id uuid.UUID) *RuleUpdateOne {
+	mutation := newRuleMutation(c.config, OpUpdateOne, withRuleID(id))
+	return &RuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Rule.
+func (c *RuleClient) Delete() *RuleDelete {
+	mutation := newRuleMutation(c.config, OpDelete)
+	return &RuleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RuleClient) DeleteOne(_m *Rule) *RuleDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RuleClient) DeleteOneID(id uuid.UUID) *RuleDeleteOne {
+	builder := c.Delete().Where(rule.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RuleDeleteOne{builder}
+}
+
+// Query returns a query builder for Rule.
+func (c *RuleClient) Query() *RuleQuery {
+	return &RuleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRule},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Rule entity by its id.
+func (c *RuleClient) Get(ctx context.Context, id uuid.UUID) (*Rule, error) {
+	return c.Query().Where(rule.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RuleClient) GetX(ctx context.Context, id uuid.UUID) *Rule {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Rule.
+func (c *RuleClient) QueryUser(_m *Rule) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(rule.Table, rule.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, rule.UserTable, rule.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTargetAccount queries the target_account edge of a Rule.
+func (c *RuleClient) QueryTargetAccount(_m *Rule) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(rule.Table, rule.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, rule.TargetAccountTable, rule.TargetAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExecutions queries the executions edge of a Rule.
+func (c *RuleClient) QueryExecutions(_m *Rule) *RuleExecutionQuery {
+	query := (&RuleExecutionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(rule.Table, rule.FieldID, id),
+			sqlgraph.To(ruleexecution.Table, ruleexecution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, rule.ExecutionsTable, rule.ExecutionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RuleClient) Hooks() []Hook {
+	return c.hooks.Rule
+}
+
+// Interceptors returns the client interceptors.
+func (c *RuleClient) Interceptors() []Interceptor {
+	return c.inters.Rule
+}
+
+func (c *RuleClient) mutate(ctx context.Context, m *RuleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RuleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RuleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RuleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Rule mutation op: %q", m.Op())
+	}
+}
+
+// RuleExecutionClient is a client for the RuleExecution schema.
+type RuleExecutionClient struct {
+	config
+}
+
+// NewRuleExecutionClient returns a client for the RuleExecution from the given config.
+func NewRuleExecutionClient(c config) *RuleExecutionClient {
+	return &RuleExecutionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ruleexecution.Hooks(f(g(h())))`.
+func (c *RuleExecutionClient) Use(hooks ...Hook) {
+	c.hooks.RuleExecution = append(c.hooks.RuleExecution, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ruleexecution.Intercept(f(g(h())))`.
+func (c *RuleExecutionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RuleExecution = append(c.inters.RuleExecution, interceptors...)
+}
+
+// Create returns a builder for creating a RuleExecution entity.
+func (c *RuleExecutionClient) Create() *RuleExecutionCreate {
+	mutation := newRuleExecutionMutation(c.config, OpCreate)
+	return &RuleExecutionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RuleExecution entities.
+func (c *RuleExecutionClient) CreateBulk(builders ...*RuleExecutionCreate) *RuleExecutionCreateBulk {
+	return &RuleExecutionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RuleExecutionClient) MapCreateBulk(slice any, setFunc func(*RuleExecutionCreate, int)) *RuleExecutionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RuleExecutionCreateBulk{err: fmt.Errorf("calling to RuleExecutionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RuleExecutionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RuleExecutionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RuleExecution.
+func (c *RuleExecutionClient) Update() *RuleExecutionUpdate {
+	mutation := newRuleExecutionMutation(c.config, OpUpdate)
+	return &RuleExecutionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RuleExecutionClient) UpdateOne(_m *RuleExecution) *RuleExecutionUpdateOne {
+	mutation := newRuleExecutionMutation(c.config, OpUpdateOne, withRuleExecution(_m))
+	return &RuleExecutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RuleExecutionClient) UpdateOneID(id uuid.UUID) *RuleExecutionUpdateOne {
+	mutation := newRuleExecutionMutation(c.config, OpUpdateOne, withRuleExecutionID(id))
+	return &RuleExecutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RuleExecution.
+func (c *RuleExecutionClient) Delete() *RuleExecutionDelete {
+	mutation := newRuleExecutionMutation(c.config, OpDelete)
+	return &RuleExecutionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RuleExecutionClient) DeleteOne(_m *RuleExecution) *RuleExecutionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RuleExecutionClient) DeleteOneID(id uuid.UUID) *RuleExecutionDeleteOne {
+	builder := c.Delete().Where(ruleexecution.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RuleExecutionDeleteOne{builder}
+}
+
+// Query returns a query builder for RuleExecution.
+func (c *RuleExecutionClient) Query() *RuleExecutionQuery {
+	return &RuleExecutionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRuleExecution},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RuleExecution entity by its id.
+func (c *RuleExecutionClient) Get(ctx context.Context, id uuid.UUID) (*RuleExecution, error) {
+	return c.Query().Where(ruleexecution.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RuleExecutionClient) GetX(ctx context.Context, id uuid.UUID) *RuleExecution {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRule queries the rule edge of a RuleExecution.
+func (c *RuleExecutionClient) QueryRule(_m *RuleExecution) *RuleQuery {
+	query := (&RuleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ruleexecution.Table, ruleexecution.FieldID, id),
+			sqlgraph.To(rule.Table, rule.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ruleexecution.RuleTable, ruleexecution.RuleColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTransaction queries the transaction edge of a RuleExecution.
+func (c *RuleExecutionClient) QueryTransaction(_m *RuleExecution) *TransactionQuery {
+	query := (&TransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ruleexecution.Table, ruleexecution.FieldID, id),
+			sqlgraph.To(transaction.Table, transaction.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ruleexecution.TransactionTable, ruleexecution.TransactionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a RuleExecution.
+func (c *RuleExecutionClient) QueryUser(_m *RuleExecution) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ruleexecution.Table, ruleexecution.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ruleexecution.UserTable, ruleexecution.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTransfer queries the transfer edge of a RuleExecution.
+func (c *RuleExecutionClient) QueryTransfer(_m *RuleExecution) *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ruleexecution.Table, ruleexecution.FieldID, id),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ruleexecution.TransferTable, ruleexecution.TransferColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RuleExecutionClient) Hooks() []Hook {
+	return c.hooks.RuleExecution
+}
+
+// Interceptors returns the client interceptors.
+func (c *RuleExecutionClient) Interceptors() []Interceptor {
+	return c.inters.RuleExecution
+}
+
+func (c *RuleExecutionClient) mutate(ctx context.Context, m *RuleExecutionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RuleExecutionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RuleExecutionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RuleExecutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RuleExecutionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RuleExecution mutation op: %q", m.Op())
+	}
+}
+
+// SavingsTransferClient is a client for the SavingsTransfer schema.
+type SavingsTransferClient struct {
+	config
+}
+
+// NewSavingsTransferClient returns a client for the SavingsTransfer from the given config.
+func NewSavingsTransferClient(c config) *SavingsTransferClient {
+	return &SavingsTransferClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `savingstransfer.Hooks(f(g(h())))`.
+func (c *SavingsTransferClient) Use(hooks ...Hook) {
+	c.hooks.SavingsTransfer = append(c.hooks.SavingsTransfer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `savingstransfer.Intercept(f(g(h())))`.
+func (c *SavingsTransferClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SavingsTransfer = append(c.inters.SavingsTransfer, interceptors...)
+}
+
+// Create returns a builder for creating a SavingsTransfer entity.
+func (c *SavingsTransferClient) Create() *SavingsTransferCreate {
+	mutation := newSavingsTransferMutation(c.config, OpCreate)
+	return &SavingsTransferCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SavingsTransfer entities.
+func (c *SavingsTransferClient) CreateBulk(builders ...*SavingsTransferCreate) *SavingsTransferCreateBulk {
+	return &SavingsTransferCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SavingsTransferClient) MapCreateBulk(slice any, setFunc func(*SavingsTransferCreate, int)) *SavingsTransferCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SavingsTransferCreateBulk{err: fmt.Errorf("calling to SavingsTransferClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SavingsTransferCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SavingsTransferCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SavingsTransfer.
+func (c *SavingsTransferClient) Update() *SavingsTransferUpdate {
+	mutation := newSavingsTransferMutation(c.config, OpUpdate)
+	return &SavingsTransferUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SavingsTransferClient) UpdateOne(_m *SavingsTransfer) *SavingsTransferUpdateOne {
+	mutation := newSavingsTransferMutation(c.config, OpUpdateOne, withSavingsTransfer(_m))
+	return &SavingsTransferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SavingsTransferClient) UpdateOneID(id uuid.UUID) *SavingsTransferUpdateOne {
+	mutation := newSavingsTransferMutation(c.config, OpUpdateOne, withSavingsTransferID(id))
+	return &SavingsTransferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SavingsTransfer.
+func (c *SavingsTransferClient) Delete() *SavingsTransferDelete {
+	mutation := newSavingsTransferMutation(c.config, OpDelete)
+	return &SavingsTransferDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SavingsTransferClient) DeleteOne(_m *SavingsTransfer) *SavingsTransferDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SavingsTransferClient) DeleteOneID(id uuid.UUID) *SavingsTransferDeleteOne {
+	builder := c.Delete().Where(savingstransfer.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SavingsTransferDeleteOne{builder}
+}
+
+// Query returns a query builder for SavingsTransfer.
+func (c *SavingsTransferClient) Query() *SavingsTransferQuery {
+	return &SavingsTransferQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSavingsTransfer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SavingsTransfer entity by its id.
+func (c *SavingsTransferClient) Get(ctx context.Context, id uuid.UUID) (*SavingsTransfer, error) {
+	return c.Query().Where(savingstransfer.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SavingsTransferClient) GetX(ctx context.Context, id uuid.UUID) *SavingsTransfer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRuleExecution queries the rule_execution edge of a SavingsTransfer.
+func (c *SavingsTransferClient) QueryRuleExecution(_m *SavingsTransfer) *RuleExecutionQuery {
+	query := (&RuleExecutionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(savingstransfer.Table, savingstransfer.FieldID, id),
+			sqlgraph.To(ruleexecution.Table, ruleexecution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, savingstransfer.RuleExecutionTable, savingstransfer.RuleExecutionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a SavingsTransfer.
+func (c *SavingsTransferClient) QueryUser(_m *SavingsTransfer) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(savingstransfer.Table, savingstransfer.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, savingstransfer.UserTable, savingstransfer.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySourceAccount queries the source_account edge of a SavingsTransfer.
+func (c *SavingsTransferClient) QuerySourceAccount(_m *SavingsTransfer) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(savingstransfer.Table, savingstransfer.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, savingstransfer.SourceAccountTable, savingstransfer.SourceAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTargetAccount queries the target_account edge of a SavingsTransfer.
+func (c *SavingsTransferClient) QueryTargetAccount(_m *SavingsTransfer) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(savingstransfer.Table, savingstransfer.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, savingstransfer.TargetAccountTable, savingstransfer.TargetAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SavingsTransferClient) Hooks() []Hook {
+	return c.hooks.SavingsTransfer
+}
+
+// Interceptors returns the client interceptors.
+func (c *SavingsTransferClient) Interceptors() []Interceptor {
+	return c.inters.SavingsTransfer
+}
+
+func (c *SavingsTransferClient) mutate(ctx context.Context, m *SavingsTransferMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SavingsTransferCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SavingsTransferUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SavingsTransferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SavingsTransferDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SavingsTransfer mutation op: %q", m.Op())
+	}
+}
+
 // SyncCursorClient is a client for the SyncCursor schema.
 type SyncCursorClient struct {
 	config
@@ -1033,6 +1682,22 @@ func (c *TransactionClient) QueryAccount(_m *Transaction) *AccountQuery {
 	return query
 }
 
+// QueryRuleExecutions queries the rule_executions edge of a Transaction.
+func (c *TransactionClient) QueryRuleExecutions(_m *Transaction) *RuleExecutionQuery {
+	query := (&RuleExecutionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(transaction.Table, transaction.FieldID, id),
+			sqlgraph.To(ruleexecution.Table, ruleexecution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, transaction.RuleExecutionsTable, transaction.RuleExecutionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TransactionClient) Hooks() []Hook {
 	return c.hooks.Transaction
@@ -1246,6 +1911,54 @@ func (c *UserClient) QueryPushSubscriptions(_m *User) *PushSubscriptionQuery {
 	return query
 }
 
+// QueryRules queries the rules edge of a User.
+func (c *UserClient) QueryRules(_m *User) *RuleQuery {
+	query := (&RuleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(rule.Table, rule.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.RulesTable, user.RulesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRuleExecutions queries the rule_executions edge of a User.
+func (c *UserClient) QueryRuleExecutions(_m *User) *RuleExecutionQuery {
+	query := (&RuleExecutionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(ruleexecution.Table, ruleexecution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.RuleExecutionsTable, user.RuleExecutionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySavingsTransfers queries the savings_transfers edge of a User.
+func (c *UserClient) QuerySavingsTransfers(_m *User) *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SavingsTransfersTable, user.SavingsTransfersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1274,10 +1987,12 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Account, Item, PushSubscription, SyncCursor, Transaction, User []ent.Hook
+		Account, Item, PushSubscription, Rule, RuleExecution, SavingsTransfer,
+		SyncCursor, Transaction, User []ent.Hook
 	}
 	inters struct {
-		Account, Item, PushSubscription, SyncCursor, Transaction, User []ent.Interceptor
+		Account, Item, PushSubscription, Rule, RuleExecution, SavingsTransfer,
+		SyncCursor, Transaction, User []ent.Interceptor
 	}
 )
 

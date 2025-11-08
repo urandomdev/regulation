@@ -34,14 +34,14 @@ func (h *Handler) Subscribe(ctx fiber.Ctx, req *SubscribeRequest) error {
 		Where(
 			pushsubscription.EndpointEQ(req.Endpoint),
 		).
-		Only(ctx.Context())
+		Only(ctx)
 
 	if err == nil {
 		// Subscription exists - update to active if needed
 		if !existing.Active || existing.UserID != user.ID {
 			_, err = existing.Update().
 				SetActive(true).
-				Save(ctx.Context())
+				Save(ctx)
 			if err != nil {
 				return protocol.ErrorResponse{
 					Code:    protocol.InternalError,
@@ -58,7 +58,7 @@ func (h *Handler) Subscribe(ctx fiber.Ctx, req *SubscribeRequest) error {
 		SetEndpoint(req.Endpoint).
 		SetP256dh(req.P256DH).
 		SetAuth(req.Auth).
-		Save(ctx.Context())
+		Save(ctx)
 
 	if err != nil {
 		if ent.IsConstraintError(err) {
@@ -99,7 +99,7 @@ func (h *Handler) Unsubscribe(ctx fiber.Ctx, req *UnsubscribeRequest) error {
 			pushsubscription.UserIDEQ(user.ID),
 			pushsubscription.EndpointEQ(req.Endpoint),
 		).
-		Exec(ctx.Context())
+		Exec(ctx)
 
 	if err != nil {
 		return protocol.ErrorResponse{

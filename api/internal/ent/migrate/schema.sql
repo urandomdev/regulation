@@ -2,6 +2,9 @@
 -- atlas:pos accounts[type=table] /home/delta/projects/regulation/api/internal/ent/schema/account.go:15
 -- atlas:pos items[type=table] /home/delta/projects/regulation/api/internal/ent/schema/item.go:15
 -- atlas:pos push_subscriptions[type=table] /home/delta/projects/regulation/api/internal/ent/schema/push_subscription.go:15
+-- atlas:pos rules[type=table] /home/delta/projects/regulation/api/internal/ent/schema/rule.go:15
+-- atlas:pos rule_executions[type=table] /home/delta/projects/regulation/api/internal/ent/schema/rule_execution.go:15
+-- atlas:pos savings_transfers[type=table] /home/delta/projects/regulation/api/internal/ent/schema/savings_transfer.go:15
 -- atlas:pos sync_cursors[type=table] /home/delta/projects/regulation/api/internal/ent/schema/sync_cursor.go:15
 -- atlas:pos transactions[type=table] /home/delta/projects/regulation/api/internal/ent/schema/transaction.go:15
 -- atlas:pos users[type=table] /home/delta/projects/regulation/api/internal/ent/schema/user.go:11
@@ -81,19 +84,33 @@ CREATE TABLE "push_subscriptions" (
 CREATE INDEX "pushsubscription_user_id_active" ON "push_subscriptions" ("user_id", "active");
 -- Create index "pushsubscription_endpoint" to table: "push_subscriptions"
 CREATE UNIQUE INDEX "pushsubscription_endpoint" ON "push_subscriptions" ("endpoint");
--- Create "sync_cursors" table
-CREATE TABLE "sync_cursors" (
+-- Create "rules" table
+CREATE TABLE "rules" (
   "id" uuid NOT NULL,
-  "cursor" character varying NOT NULL DEFAULT '',
-  "last_sync_at" timestamptz NOT NULL,
-  "item_id" uuid NOT NULL,
+  "name" character varying NOT NULL,
+  "category" character varying NOT NULL,
+  "min_amount_cents" bigint NULL,
+  "max_amount_cents" bigint NULL,
+  "action_type" character varying NOT NULL,
+  "action_value" double precision NOT NULL,
+  "is_active" boolean NOT NULL DEFAULT true,
+  "priority" bigint NOT NULL DEFAULT 0,
+  "execution_count" bigint NOT NULL DEFAULT 0,
+  "total_saved_cents" bigint NOT NULL DEFAULT 0,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "target_account_id" uuid NOT NULL,
+  "user_id" uuid NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "sync_cursors_items_sync_cursor" FOREIGN KEY ("item_id") REFERENCES "items" ("id") ON DELETE NO ACTION
+  CONSTRAINT "rules_accounts_target_rules" FOREIGN KEY ("target_account_id") REFERENCES "accounts" ("id") ON DELETE NO ACTION,
+  CONSTRAINT "rules_users_rules" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE NO ACTION
 );
--- Create index "sync_cursors_item_id_key" to table: "sync_cursors"
-CREATE UNIQUE INDEX "sync_cursors_item_id_key" ON "sync_cursors" ("item_id");
--- Create index "synccursor_item_id" to table: "sync_cursors"
-CREATE UNIQUE INDEX "synccursor_item_id" ON "sync_cursors" ("item_id");
+-- Create index "rule_user_id_is_active" to table: "rules"
+CREATE INDEX "rule_user_id_is_active" ON "rules" ("user_id", "is_active");
+-- Create index "rule_category" to table: "rules"
+CREATE INDEX "rule_category" ON "rules" ("category");
+-- Create index "rule_priority" to table: "rules"
+CREATE INDEX "rule_priority" ON "rules" ("priority");
 -- Create "transactions" table
 CREATE TABLE "transactions" (
   "id" uuid NOT NULL,
@@ -122,4 +139,68 @@ CREATE UNIQUE INDEX "transaction_plaid_id" ON "transactions" ("plaid_id");
 CREATE INDEX "transaction_category" ON "transactions" ("category");
 -- Create index "transaction_pending" to table: "transactions"
 CREATE INDEX "transaction_pending" ON "transactions" ("pending");
+-- Create "rule_executions" table
+CREATE TABLE "rule_executions" (
+  "id" uuid NOT NULL,
+  "amount_cents" bigint NOT NULL,
+  "source_account_id" uuid NOT NULL,
+  "target_account_id" uuid NOT NULL,
+  "status" character varying NOT NULL DEFAULT 'pending',
+  "error_message" character varying NULL,
+  "created_at" timestamptz NOT NULL,
+  "completed_at" timestamptz NULL,
+  "rule_id" uuid NOT NULL,
+  "transaction_id" uuid NOT NULL,
+  "user_id" uuid NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "rule_executions_rules_executions" FOREIGN KEY ("rule_id") REFERENCES "rules" ("id") ON DELETE NO ACTION,
+  CONSTRAINT "rule_executions_transactions_rule_executions" FOREIGN KEY ("transaction_id") REFERENCES "transactions" ("id") ON DELETE NO ACTION,
+  CONSTRAINT "rule_executions_users_rule_executions" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE NO ACTION
+);
+-- Create index "ruleexecution_rule_id_transaction_id" to table: "rule_executions"
+CREATE UNIQUE INDEX "ruleexecution_rule_id_transaction_id" ON "rule_executions" ("rule_id", "transaction_id");
+-- Create index "ruleexecution_user_id_created_at" to table: "rule_executions"
+CREATE INDEX "ruleexecution_user_id_created_at" ON "rule_executions" ("user_id", "created_at");
+-- Create index "ruleexecution_status" to table: "rule_executions"
+CREATE INDEX "ruleexecution_status" ON "rule_executions" ("status");
+-- Create "savings_transfers" table
+CREATE TABLE "savings_transfers" (
+  "id" uuid NOT NULL,
+  "amount_cents" bigint NOT NULL,
+  "status" character varying NOT NULL DEFAULT 'suggested',
+  "plaid_transfer_id" character varying NULL,
+  "error_message" character varying NULL,
+  "created_at" timestamptz NOT NULL,
+  "executed_at" timestamptz NULL,
+  "source_account_id" uuid NOT NULL,
+  "target_account_id" uuid NOT NULL,
+  "rule_execution_id" uuid NOT NULL,
+  "user_id" uuid NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "savings_transfers_accounts_outgoing_transfers" FOREIGN KEY ("source_account_id") REFERENCES "accounts" ("id") ON DELETE NO ACTION,
+  CONSTRAINT "savings_transfers_accounts_incoming_transfers" FOREIGN KEY ("target_account_id") REFERENCES "accounts" ("id") ON DELETE NO ACTION,
+  CONSTRAINT "savings_transfers_rule_executions_transfer" FOREIGN KEY ("rule_execution_id") REFERENCES "rule_executions" ("id") ON DELETE NO ACTION,
+  CONSTRAINT "savings_transfers_users_savings_transfers" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE NO ACTION
+);
+-- Create index "savings_transfers_rule_execution_id_key" to table: "savings_transfers"
+CREATE UNIQUE INDEX "savings_transfers_rule_execution_id_key" ON "savings_transfers" ("rule_execution_id");
+-- Create index "savingstransfer_user_id_status" to table: "savings_transfers"
+CREATE INDEX "savingstransfer_user_id_status" ON "savings_transfers" ("user_id", "status");
+-- Create index "savingstransfer_created_at" to table: "savings_transfers"
+CREATE INDEX "savingstransfer_created_at" ON "savings_transfers" ("created_at");
+-- Create index "savingstransfer_rule_execution_id" to table: "savings_transfers"
+CREATE UNIQUE INDEX "savingstransfer_rule_execution_id" ON "savings_transfers" ("rule_execution_id");
+-- Create "sync_cursors" table
+CREATE TABLE "sync_cursors" (
+  "id" uuid NOT NULL,
+  "cursor" character varying NOT NULL DEFAULT '',
+  "last_sync_at" timestamptz NOT NULL,
+  "item_id" uuid NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "sync_cursors_items_sync_cursor" FOREIGN KEY ("item_id") REFERENCES "items" ("id") ON DELETE NO ACTION
+);
+-- Create index "sync_cursors_item_id_key" to table: "sync_cursors"
+CREATE UNIQUE INDEX "sync_cursors_item_id_key" ON "sync_cursors" ("item_id");
+-- Create index "synccursor_item_id" to table: "sync_cursors"
+CREATE UNIQUE INDEX "synccursor_item_id" ON "sync_cursors" ("item_id");
 

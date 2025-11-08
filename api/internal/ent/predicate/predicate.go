@@ -15,6 +15,15 @@ type Item func(*sql.Selector)
 // PushSubscription is the predicate function for pushsubscription builders.
 type PushSubscription func(*sql.Selector)
 
+// Rule is the predicate function for rule builders.
+type Rule func(*sql.Selector)
+
+// RuleExecution is the predicate function for ruleexecution builders.
+type RuleExecution func(*sql.Selector)
+
+// SavingsTransfer is the predicate function for savingstransfer builders.
+type SavingsTransfer func(*sql.Selector)
+
 // SyncCursor is the predicate function for synccursor builders.
 type SyncCursor func(*sql.Selector)
 

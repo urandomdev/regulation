@@ -10,6 +10,9 @@ import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/pushsubscription"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/ruleexecution"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/synccursor"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
@@ -81,6 +84,9 @@ func checkColumn(t, c string) error {
 			account.Table:          account.ValidColumn,
 			item.Table:             item.ValidColumn,
 			pushsubscription.Table: pushsubscription.ValidColumn,
+			rule.Table:             rule.ValidColumn,
+			ruleexecution.Table:    ruleexecution.ValidColumn,
+			savingstransfer.Table:  savingstransfer.ValidColumn,
 			synccursor.Table:       synccursor.ValidColumn,
 			transaction.Table:      transaction.ValidColumn,
 			user.Table:             user.ValidColumn,

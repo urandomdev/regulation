@@ -10,6 +10,9 @@ import (
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/predicate"
 	"regulation/internal/ent/pushsubscription"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/ruleexecution"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/user"
 
 	"entgo.io/ent/dialect/sql"
@@ -151,6 +154,51 @@ func (_u *UserUpdate) AddPushSubscriptions(v ...*PushSubscription) *UserUpdate {
 	return _u.AddPushSubscriptionIDs(ids...)
 }
 
+// AddRuleIDs adds the "rules" edge to the Rule entity by IDs.
+func (_u *UserUpdate) AddRuleIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddRuleIDs(ids...)
+	return _u
+}
+
+// AddRules adds the "rules" edges to the Rule entity.
+func (_u *UserUpdate) AddRules(v ...*Rule) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRuleIDs(ids...)
+}
+
+// AddRuleExecutionIDs adds the "rule_executions" edge to the RuleExecution entity by IDs.
+func (_u *UserUpdate) AddRuleExecutionIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddRuleExecutionIDs(ids...)
+	return _u
+}
+
+// AddRuleExecutions adds the "rule_executions" edges to the RuleExecution entity.
+func (_u *UserUpdate) AddRuleExecutions(v ...*RuleExecution) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRuleExecutionIDs(ids...)
+}
+
+// AddSavingsTransferIDs adds the "savings_transfers" edge to the SavingsTransfer entity by IDs.
+func (_u *UserUpdate) AddSavingsTransferIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddSavingsTransferIDs(ids...)
+	return _u
+}
+
+// AddSavingsTransfers adds the "savings_transfers" edges to the SavingsTransfer entity.
+func (_u *UserUpdate) AddSavingsTransfers(v ...*SavingsTransfer) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSavingsTransferIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -244,6 +292,69 @@ func (_u *UserUpdate) RemovePushSubscriptions(v ...*PushSubscription) *UserUpdat
 		ids[i] = v[i].ID
 	}
 	return _u.RemovePushSubscriptionIDs(ids...)
+}
+
+// ClearRules clears all "rules" edges to the Rule entity.
+func (_u *UserUpdate) ClearRules() *UserUpdate {
+	_u.mutation.ClearRules()
+	return _u
+}
+
+// RemoveRuleIDs removes the "rules" edge to Rule entities by IDs.
+func (_u *UserUpdate) RemoveRuleIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveRuleIDs(ids...)
+	return _u
+}
+
+// RemoveRules removes "rules" edges to Rule entities.
+func (_u *UserUpdate) RemoveRules(v ...*Rule) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRuleIDs(ids...)
+}
+
+// ClearRuleExecutions clears all "rule_executions" edges to the RuleExecution entity.
+func (_u *UserUpdate) ClearRuleExecutions() *UserUpdate {
+	_u.mutation.ClearRuleExecutions()
+	return _u
+}
+
+// RemoveRuleExecutionIDs removes the "rule_executions" edge to RuleExecution entities by IDs.
+func (_u *UserUpdate) RemoveRuleExecutionIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveRuleExecutionIDs(ids...)
+	return _u
+}
+
+// RemoveRuleExecutions removes "rule_executions" edges to RuleExecution entities.
+func (_u *UserUpdate) RemoveRuleExecutions(v ...*RuleExecution) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRuleExecutionIDs(ids...)
+}
+
+// ClearSavingsTransfers clears all "savings_transfers" edges to the SavingsTransfer entity.
+func (_u *UserUpdate) ClearSavingsTransfers() *UserUpdate {
+	_u.mutation.ClearSavingsTransfers()
+	return _u
+}
+
+// RemoveSavingsTransferIDs removes the "savings_transfers" edge to SavingsTransfer entities by IDs.
+func (_u *UserUpdate) RemoveSavingsTransferIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveSavingsTransferIDs(ids...)
+	return _u
+}
+
+// RemoveSavingsTransfers removes "savings_transfers" edges to SavingsTransfer entities.
+func (_u *UserUpdate) RemoveSavingsTransfers(v ...*SavingsTransfer) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSavingsTransferIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -506,6 +617,141 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.RulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRulesIDs(); len(nodes) > 0 && !_u.mutation.RulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRuleExecutionsIDs(); len(nodes) > 0 && !_u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RuleExecutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SavingsTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSavingsTransfersIDs(); len(nodes) > 0 && !_u.mutation.SavingsTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SavingsTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -647,6 +893,51 @@ func (_u *UserUpdateOne) AddPushSubscriptions(v ...*PushSubscription) *UserUpdat
 	return _u.AddPushSubscriptionIDs(ids...)
 }
 
+// AddRuleIDs adds the "rules" edge to the Rule entity by IDs.
+func (_u *UserUpdateOne) AddRuleIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddRuleIDs(ids...)
+	return _u
+}
+
+// AddRules adds the "rules" edges to the Rule entity.
+func (_u *UserUpdateOne) AddRules(v ...*Rule) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRuleIDs(ids...)
+}
+
+// AddRuleExecutionIDs adds the "rule_executions" edge to the RuleExecution entity by IDs.
+func (_u *UserUpdateOne) AddRuleExecutionIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddRuleExecutionIDs(ids...)
+	return _u
+}
+
+// AddRuleExecutions adds the "rule_executions" edges to the RuleExecution entity.
+func (_u *UserUpdateOne) AddRuleExecutions(v ...*RuleExecution) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRuleExecutionIDs(ids...)
+}
+
+// AddSavingsTransferIDs adds the "savings_transfers" edge to the SavingsTransfer entity by IDs.
+func (_u *UserUpdateOne) AddSavingsTransferIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddSavingsTransferIDs(ids...)
+	return _u
+}
+
+// AddSavingsTransfers adds the "savings_transfers" edges to the SavingsTransfer entity.
+func (_u *UserUpdateOne) AddSavingsTransfers(v ...*SavingsTransfer) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSavingsTransferIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -740,6 +1031,69 @@ func (_u *UserUpdateOne) RemovePushSubscriptions(v ...*PushSubscription) *UserUp
 		ids[i] = v[i].ID
 	}
 	return _u.RemovePushSubscriptionIDs(ids...)
+}
+
+// ClearRules clears all "rules" edges to the Rule entity.
+func (_u *UserUpdateOne) ClearRules() *UserUpdateOne {
+	_u.mutation.ClearRules()
+	return _u
+}
+
+// RemoveRuleIDs removes the "rules" edge to Rule entities by IDs.
+func (_u *UserUpdateOne) RemoveRuleIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveRuleIDs(ids...)
+	return _u
+}
+
+// RemoveRules removes "rules" edges to Rule entities.
+func (_u *UserUpdateOne) RemoveRules(v ...*Rule) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRuleIDs(ids...)
+}
+
+// ClearRuleExecutions clears all "rule_executions" edges to the RuleExecution entity.
+func (_u *UserUpdateOne) ClearRuleExecutions() *UserUpdateOne {
+	_u.mutation.ClearRuleExecutions()
+	return _u
+}
+
+// RemoveRuleExecutionIDs removes the "rule_executions" edge to RuleExecution entities by IDs.
+func (_u *UserUpdateOne) RemoveRuleExecutionIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveRuleExecutionIDs(ids...)
+	return _u
+}
+
+// RemoveRuleExecutions removes "rule_executions" edges to RuleExecution entities.
+func (_u *UserUpdateOne) RemoveRuleExecutions(v ...*RuleExecution) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRuleExecutionIDs(ids...)
+}
+
+// ClearSavingsTransfers clears all "savings_transfers" edges to the SavingsTransfer entity.
+func (_u *UserUpdateOne) ClearSavingsTransfers() *UserUpdateOne {
+	_u.mutation.ClearSavingsTransfers()
+	return _u
+}
+
+// RemoveSavingsTransferIDs removes the "savings_transfers" edge to SavingsTransfer entities by IDs.
+func (_u *UserUpdateOne) RemoveSavingsTransferIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveSavingsTransferIDs(ids...)
+	return _u
+}
+
+// RemoveSavingsTransfers removes "savings_transfers" edges to SavingsTransfer entities.
+func (_u *UserUpdateOne) RemoveSavingsTransfers(v ...*SavingsTransfer) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSavingsTransferIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -1025,6 +1379,141 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(pushsubscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRulesIDs(); len(nodes) > 0 && !_u.mutation.RulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRuleExecutionsIDs(); len(nodes) > 0 && !_u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RuleExecutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SavingsTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSavingsTransfersIDs(); len(nodes) > 0 && !_u.mutation.SavingsTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SavingsTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -6,6 +6,9 @@ import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/pushsubscription"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/ruleexecution"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/schema"
 	"regulation/internal/ent/synccursor"
 	"regulation/internal/ent/transaction"
@@ -115,6 +118,62 @@ func init() {
 	pushsubscriptionDescID := pushsubscriptionFields[0].Descriptor()
 	// pushsubscription.DefaultID holds the default value on creation for the id field.
 	pushsubscription.DefaultID = pushsubscriptionDescID.Default.(func() uuid.UUID)
+	ruleFields := schema.Rule{}.Fields()
+	_ = ruleFields
+	// ruleDescName is the schema descriptor for name field.
+	ruleDescName := ruleFields[2].Descriptor()
+	// rule.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	rule.NameValidator = ruleDescName.Validators[0].(func(string) error)
+	// ruleDescIsActive is the schema descriptor for is_active field.
+	ruleDescIsActive := ruleFields[9].Descriptor()
+	// rule.DefaultIsActive holds the default value on creation for the is_active field.
+	rule.DefaultIsActive = ruleDescIsActive.Default.(bool)
+	// ruleDescPriority is the schema descriptor for priority field.
+	ruleDescPriority := ruleFields[10].Descriptor()
+	// rule.DefaultPriority holds the default value on creation for the priority field.
+	rule.DefaultPriority = ruleDescPriority.Default.(int)
+	// ruleDescExecutionCount is the schema descriptor for execution_count field.
+	ruleDescExecutionCount := ruleFields[11].Descriptor()
+	// rule.DefaultExecutionCount holds the default value on creation for the execution_count field.
+	rule.DefaultExecutionCount = ruleDescExecutionCount.Default.(int)
+	// ruleDescTotalSavedCents is the schema descriptor for total_saved_cents field.
+	ruleDescTotalSavedCents := ruleFields[12].Descriptor()
+	// rule.DefaultTotalSavedCents holds the default value on creation for the total_saved_cents field.
+	rule.DefaultTotalSavedCents = ruleDescTotalSavedCents.Default.(int64)
+	// ruleDescCreatedAt is the schema descriptor for created_at field.
+	ruleDescCreatedAt := ruleFields[13].Descriptor()
+	// rule.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rule.DefaultCreatedAt = ruleDescCreatedAt.Default.(func() time.Time)
+	// ruleDescUpdatedAt is the schema descriptor for updated_at field.
+	ruleDescUpdatedAt := ruleFields[14].Descriptor()
+	// rule.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rule.DefaultUpdatedAt = ruleDescUpdatedAt.Default.(func() time.Time)
+	// rule.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rule.UpdateDefaultUpdatedAt = ruleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ruleDescID is the schema descriptor for id field.
+	ruleDescID := ruleFields[0].Descriptor()
+	// rule.DefaultID holds the default value on creation for the id field.
+	rule.DefaultID = ruleDescID.Default.(func() uuid.UUID)
+	ruleexecutionFields := schema.RuleExecution{}.Fields()
+	_ = ruleexecutionFields
+	// ruleexecutionDescCreatedAt is the schema descriptor for created_at field.
+	ruleexecutionDescCreatedAt := ruleexecutionFields[9].Descriptor()
+	// ruleexecution.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ruleexecution.DefaultCreatedAt = ruleexecutionDescCreatedAt.Default.(func() time.Time)
+	// ruleexecutionDescID is the schema descriptor for id field.
+	ruleexecutionDescID := ruleexecutionFields[0].Descriptor()
+	// ruleexecution.DefaultID holds the default value on creation for the id field.
+	ruleexecution.DefaultID = ruleexecutionDescID.Default.(func() uuid.UUID)
+	savingstransferFields := schema.SavingsTransfer{}.Fields()
+	_ = savingstransferFields
+	// savingstransferDescCreatedAt is the schema descriptor for created_at field.
+	savingstransferDescCreatedAt := savingstransferFields[9].Descriptor()
+	// savingstransfer.DefaultCreatedAt holds the default value on creation for the created_at field.
+	savingstransfer.DefaultCreatedAt = savingstransferDescCreatedAt.Default.(func() time.Time)
+	// savingstransferDescID is the schema descriptor for id field.
+	savingstransferDescID := savingstransferFields[0].Descriptor()
+	// savingstransfer.DefaultID holds the default value on creation for the id field.
+	savingstransfer.DefaultID = savingstransferDescID.Default.(func() uuid.UUID)
 	synccursorFields := schema.SyncCursor{}.Fields()
 	_ = synccursorFields
 	// synccursorDescCursor is the schema descriptor for cursor field.

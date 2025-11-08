@@ -76,6 +76,9 @@ func (Account) Edges() []ent.Edge {
 			Required().
 			Unique(),
 		edge.To("transactions", Transaction.Type),
+		edge.To("target_rules", Rule.Type),
+		edge.To("outgoing_transfers", SavingsTransfer.Type),
+		edge.To("incoming_transfers", SavingsTransfer.Type),
 	}
 }
 

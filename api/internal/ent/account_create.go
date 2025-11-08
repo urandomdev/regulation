@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
 	"time"
@@ -200,6 +202,51 @@ func (_c *AccountCreate) AddTransactions(v ...*Transaction) *AccountCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddTransactionIDs(ids...)
+}
+
+// AddTargetRuleIDs adds the "target_rules" edge to the Rule entity by IDs.
+func (_c *AccountCreate) AddTargetRuleIDs(ids ...uuid.UUID) *AccountCreate {
+	_c.mutation.AddTargetRuleIDs(ids...)
+	return _c
+}
+
+// AddTargetRules adds the "target_rules" edges to the Rule entity.
+func (_c *AccountCreate) AddTargetRules(v ...*Rule) *AccountCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddTargetRuleIDs(ids...)
+}
+
+// AddOutgoingTransferIDs adds the "outgoing_transfers" edge to the SavingsTransfer entity by IDs.
+func (_c *AccountCreate) AddOutgoingTransferIDs(ids ...uuid.UUID) *AccountCreate {
+	_c.mutation.AddOutgoingTransferIDs(ids...)
+	return _c
+}
+
+// AddOutgoingTransfers adds the "outgoing_transfers" edges to the SavingsTransfer entity.
+func (_c *AccountCreate) AddOutgoingTransfers(v ...*SavingsTransfer) *AccountCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOutgoingTransferIDs(ids...)
+}
+
+// AddIncomingTransferIDs adds the "incoming_transfers" edge to the SavingsTransfer entity by IDs.
+func (_c *AccountCreate) AddIncomingTransferIDs(ids ...uuid.UUID) *AccountCreate {
+	_c.mutation.AddIncomingTransferIDs(ids...)
+	return _c
+}
+
+// AddIncomingTransfers adds the "incoming_transfers" edges to the SavingsTransfer entity.
+func (_c *AccountCreate) AddIncomingTransfers(v ...*SavingsTransfer) *AccountCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddIncomingTransferIDs(ids...)
 }
 
 // Mutation returns the AccountMutation object of the builder.
@@ -432,6 +479,54 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TargetRulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.TargetRulesTable,
+			Columns: []string{account.TargetRulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OutgoingTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.OutgoingTransfersTable,
+			Columns: []string{account.OutgoingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IncomingTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.IncomingTransfersTable,
+			Columns: []string{account.IncomingTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

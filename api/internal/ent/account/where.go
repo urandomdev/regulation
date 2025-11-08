@@ -700,6 +700,75 @@ func HasTransactionsWith(preds ...predicate.Transaction) predicate.Account {
 	})
 }
 
+// HasTargetRules applies the HasEdge predicate on the "target_rules" edge.
+func HasTargetRules() predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TargetRulesTable, TargetRulesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTargetRulesWith applies the HasEdge predicate on the "target_rules" edge with a given conditions (other predicates).
+func HasTargetRulesWith(preds ...predicate.Rule) predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := newTargetRulesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOutgoingTransfers applies the HasEdge predicate on the "outgoing_transfers" edge.
+func HasOutgoingTransfers() predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OutgoingTransfersTable, OutgoingTransfersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOutgoingTransfersWith applies the HasEdge predicate on the "outgoing_transfers" edge with a given conditions (other predicates).
+func HasOutgoingTransfersWith(preds ...predicate.SavingsTransfer) predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := newOutgoingTransfersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasIncomingTransfers applies the HasEdge predicate on the "incoming_transfers" edge.
+func HasIncomingTransfers() predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, IncomingTransfersTable, IncomingTransfersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasIncomingTransfersWith applies the HasEdge predicate on the "incoming_transfers" edge with a given conditions (other predicates).
+func HasIncomingTransfersWith(preds ...predicate.SavingsTransfer) predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := newIncomingTransfersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Account) predicate.Account {
 	return predicate.Account(sql.AndPredicates(predicates...))

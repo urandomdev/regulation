@@ -18,7 +18,7 @@ type plaidClientImpl struct {
 }
 
 // NewPlaidClient creates a new Plaid client using the official SDK
-func NewPlaidClient(cfg *config.PlaidConfig) (PlaidClient, error) {
+func NewPlaidClient(cfg *config.PlaidConfig) (Client, error) {
 	if cfg == nil {
 		return nil, errors.New("plaid config is nil")
 	}

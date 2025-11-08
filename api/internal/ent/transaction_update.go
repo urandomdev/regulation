@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/predicate"
+	"regulation/internal/ent/ruleexecution"
 	"regulation/internal/ent/transaction"
 	"time"
 
@@ -206,6 +207,21 @@ func (_u *TransactionUpdate) SetAccount(v *Account) *TransactionUpdate {
 	return _u.SetAccountID(v.ID)
 }
 
+// AddRuleExecutionIDs adds the "rule_executions" edge to the RuleExecution entity by IDs.
+func (_u *TransactionUpdate) AddRuleExecutionIDs(ids ...uuid.UUID) *TransactionUpdate {
+	_u.mutation.AddRuleExecutionIDs(ids...)
+	return _u
+}
+
+// AddRuleExecutions adds the "rule_executions" edges to the RuleExecution entity.
+func (_u *TransactionUpdate) AddRuleExecutions(v ...*RuleExecution) *TransactionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRuleExecutionIDs(ids...)
+}
+
 // Mutation returns the TransactionMutation object of the builder.
 func (_u *TransactionUpdate) Mutation() *TransactionMutation {
 	return _u.mutation
@@ -215,6 +231,27 @@ func (_u *TransactionUpdate) Mutation() *TransactionMutation {
 func (_u *TransactionUpdate) ClearAccount() *TransactionUpdate {
 	_u.mutation.ClearAccount()
 	return _u
+}
+
+// ClearRuleExecutions clears all "rule_executions" edges to the RuleExecution entity.
+func (_u *TransactionUpdate) ClearRuleExecutions() *TransactionUpdate {
+	_u.mutation.ClearRuleExecutions()
+	return _u
+}
+
+// RemoveRuleExecutionIDs removes the "rule_executions" edge to RuleExecution entities by IDs.
+func (_u *TransactionUpdate) RemoveRuleExecutionIDs(ids ...uuid.UUID) *TransactionUpdate {
+	_u.mutation.RemoveRuleExecutionIDs(ids...)
+	return _u
+}
+
+// RemoveRuleExecutions removes "rule_executions" edges to RuleExecution entities.
+func (_u *TransactionUpdate) RemoveRuleExecutions(v ...*RuleExecution) *TransactionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRuleExecutionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -358,6 +395,51 @@ func (_u *TransactionUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(account.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRuleExecutionsIDs(); len(nodes) > 0 && !_u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RuleExecutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -561,6 +643,21 @@ func (_u *TransactionUpdateOne) SetAccount(v *Account) *TransactionUpdateOne {
 	return _u.SetAccountID(v.ID)
 }
 
+// AddRuleExecutionIDs adds the "rule_executions" edge to the RuleExecution entity by IDs.
+func (_u *TransactionUpdateOne) AddRuleExecutionIDs(ids ...uuid.UUID) *TransactionUpdateOne {
+	_u.mutation.AddRuleExecutionIDs(ids...)
+	return _u
+}
+
+// AddRuleExecutions adds the "rule_executions" edges to the RuleExecution entity.
+func (_u *TransactionUpdateOne) AddRuleExecutions(v ...*RuleExecution) *TransactionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRuleExecutionIDs(ids...)
+}
+
 // Mutation returns the TransactionMutation object of the builder.
 func (_u *TransactionUpdateOne) Mutation() *TransactionMutation {
 	return _u.mutation
@@ -570,6 +667,27 @@ func (_u *TransactionUpdateOne) Mutation() *TransactionMutation {
 func (_u *TransactionUpdateOne) ClearAccount() *TransactionUpdateOne {
 	_u.mutation.ClearAccount()
 	return _u
+}
+
+// ClearRuleExecutions clears all "rule_executions" edges to the RuleExecution entity.
+func (_u *TransactionUpdateOne) ClearRuleExecutions() *TransactionUpdateOne {
+	_u.mutation.ClearRuleExecutions()
+	return _u
+}
+
+// RemoveRuleExecutionIDs removes the "rule_executions" edge to RuleExecution entities by IDs.
+func (_u *TransactionUpdateOne) RemoveRuleExecutionIDs(ids ...uuid.UUID) *TransactionUpdateOne {
+	_u.mutation.RemoveRuleExecutionIDs(ids...)
+	return _u
+}
+
+// RemoveRuleExecutions removes "rule_executions" edges to RuleExecution entities.
+func (_u *TransactionUpdateOne) RemoveRuleExecutions(v ...*RuleExecution) *TransactionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRuleExecutionIDs(ids...)
 }
 
 // Where appends a list predicates to the TransactionUpdate builder.
@@ -743,6 +861,51 @@ func (_u *TransactionUpdateOne) sqlSave(ctx context.Context) (_node *Transaction
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(account.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRuleExecutionsIDs(); len(nodes) > 0 && !_u.mutation.RuleExecutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RuleExecutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   transaction.RuleExecutionsTable,
+			Columns: []string{transaction.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

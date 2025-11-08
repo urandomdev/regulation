@@ -10,6 +10,8 @@ import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/predicate"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
 
@@ -24,14 +26,17 @@ import (
 // AccountQuery is the builder for querying Account entities.
 type AccountQuery struct {
 	config
-	ctx              *QueryContext
-	order            []account.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.Account
-	withItem         *ItemQuery
-	withUser         *UserQuery
-	withTransactions *TransactionQuery
-	modifiers        []func(*sql.Selector)
+	ctx                   *QueryContext
+	order                 []account.OrderOption
+	inters                []Interceptor
+	predicates            []predicate.Account
+	withItem              *ItemQuery
+	withUser              *UserQuery
+	withTransactions      *TransactionQuery
+	withTargetRules       *RuleQuery
+	withOutgoingTransfers *SavingsTransferQuery
+	withIncomingTransfers *SavingsTransferQuery
+	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -127,6 +132,72 @@ func (_q *AccountQuery) QueryTransactions() *TransactionQuery {
 			sqlgraph.From(account.Table, account.FieldID, selector),
 			sqlgraph.To(transaction.Table, transaction.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, account.TransactionsTable, account.TransactionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTargetRules chains the current query on the "target_rules" edge.
+func (_q *AccountQuery) QueryTargetRules() *RuleQuery {
+	query := (&RuleClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, selector),
+			sqlgraph.To(rule.Table, rule.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.TargetRulesTable, account.TargetRulesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOutgoingTransfers chains the current query on the "outgoing_transfers" edge.
+func (_q *AccountQuery) QueryOutgoingTransfers() *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, selector),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.OutgoingTransfersTable, account.OutgoingTransfersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryIncomingTransfers chains the current query on the "incoming_transfers" edge.
+func (_q *AccountQuery) QueryIncomingTransfers() *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, selector),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, account.IncomingTransfersTable, account.IncomingTransfersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -321,14 +392,17 @@ func (_q *AccountQuery) Clone() *AccountQuery {
 		return nil
 	}
 	return &AccountQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]account.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.Account{}, _q.predicates...),
-		withItem:         _q.withItem.Clone(),
-		withUser:         _q.withUser.Clone(),
-		withTransactions: _q.withTransactions.Clone(),
+		config:                _q.config,
+		ctx:                   _q.ctx.Clone(),
+		order:                 append([]account.OrderOption{}, _q.order...),
+		inters:                append([]Interceptor{}, _q.inters...),
+		predicates:            append([]predicate.Account{}, _q.predicates...),
+		withItem:              _q.withItem.Clone(),
+		withUser:              _q.withUser.Clone(),
+		withTransactions:      _q.withTransactions.Clone(),
+		withTargetRules:       _q.withTargetRules.Clone(),
+		withOutgoingTransfers: _q.withOutgoingTransfers.Clone(),
+		withIncomingTransfers: _q.withIncomingTransfers.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -366,6 +440,39 @@ func (_q *AccountQuery) WithTransactions(opts ...func(*TransactionQuery)) *Accou
 		opt(query)
 	}
 	_q.withTransactions = query
+	return _q
+}
+
+// WithTargetRules tells the query-builder to eager-load the nodes that are connected to
+// the "target_rules" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AccountQuery) WithTargetRules(opts ...func(*RuleQuery)) *AccountQuery {
+	query := (&RuleClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTargetRules = query
+	return _q
+}
+
+// WithOutgoingTransfers tells the query-builder to eager-load the nodes that are connected to
+// the "outgoing_transfers" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AccountQuery) WithOutgoingTransfers(opts ...func(*SavingsTransferQuery)) *AccountQuery {
+	query := (&SavingsTransferClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOutgoingTransfers = query
+	return _q
+}
+
+// WithIncomingTransfers tells the query-builder to eager-load the nodes that are connected to
+// the "incoming_transfers" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AccountQuery) WithIncomingTransfers(opts ...func(*SavingsTransferQuery)) *AccountQuery {
+	query := (&SavingsTransferClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIncomingTransfers = query
 	return _q
 }
 
@@ -447,10 +554,13 @@ func (_q *AccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Acco
 	var (
 		nodes       = []*Account{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [6]bool{
 			_q.withItem != nil,
 			_q.withUser != nil,
 			_q.withTransactions != nil,
+			_q.withTargetRules != nil,
+			_q.withOutgoingTransfers != nil,
+			_q.withIncomingTransfers != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -490,6 +600,27 @@ func (_q *AccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Acco
 		if err := _q.loadTransactions(ctx, query, nodes,
 			func(n *Account) { n.Edges.Transactions = []*Transaction{} },
 			func(n *Account, e *Transaction) { n.Edges.Transactions = append(n.Edges.Transactions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTargetRules; query != nil {
+		if err := _q.loadTargetRules(ctx, query, nodes,
+			func(n *Account) { n.Edges.TargetRules = []*Rule{} },
+			func(n *Account, e *Rule) { n.Edges.TargetRules = append(n.Edges.TargetRules, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOutgoingTransfers; query != nil {
+		if err := _q.loadOutgoingTransfers(ctx, query, nodes,
+			func(n *Account) { n.Edges.OutgoingTransfers = []*SavingsTransfer{} },
+			func(n *Account, e *SavingsTransfer) { n.Edges.OutgoingTransfers = append(n.Edges.OutgoingTransfers, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withIncomingTransfers; query != nil {
+		if err := _q.loadIncomingTransfers(ctx, query, nodes,
+			func(n *Account) { n.Edges.IncomingTransfers = []*SavingsTransfer{} },
+			func(n *Account, e *SavingsTransfer) { n.Edges.IncomingTransfers = append(n.Edges.IncomingTransfers, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -579,6 +710,96 @@ func (_q *AccountQuery) loadTransactions(ctx context.Context, query *Transaction
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AccountQuery) loadTargetRules(ctx context.Context, query *RuleQuery, nodes []*Account, init func(*Account), assign func(*Account, *Rule)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Account)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(rule.FieldTargetAccountID)
+	}
+	query.Where(predicate.Rule(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(account.TargetRulesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TargetAccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "target_account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AccountQuery) loadOutgoingTransfers(ctx context.Context, query *SavingsTransferQuery, nodes []*Account, init func(*Account), assign func(*Account, *SavingsTransfer)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Account)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(savingstransfer.FieldSourceAccountID)
+	}
+	query.Where(predicate.SavingsTransfer(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(account.OutgoingTransfersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SourceAccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "source_account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AccountQuery) loadIncomingTransfers(ctx context.Context, query *SavingsTransferQuery, nodes []*Account, init func(*Account), assign func(*Account, *SavingsTransfer)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Account)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(savingstransfer.FieldTargetAccountID)
+	}
+	query.Where(predicate.SavingsTransfer(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(account.IncomingTransfersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TargetAccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "target_account_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

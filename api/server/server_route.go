@@ -7,10 +7,17 @@ import (
 	"regulation/server/handlers/financial"
 	"regulation/server/handlers/notification"
 	"regulation/server/handlers/plaid"
+	"regulation/server/handlers/rule"
 	"regulation/server/middleware"
+
+	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
 func (s *Server) route() {
+	s.app.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"*"},
+	}))
+
 	s.app.Use(middleware.NewRequestInfoMiddleware())
 	s.app.Use(middleware.NewLoggerMiddleware(s.logger))
 
@@ -69,5 +76,20 @@ func (s *Server) route() {
 		// Protected endpoints (authentication required)
 		notificationGroup.Post("/subscribe", auth.Handle, ro.WrapHandler2(handler.Subscribe))
 		notificationGroup.Delete("/subscribe", auth.Handle, ro.WrapHandler2(handler.Unsubscribe))
+	}
+
+	// Rule management routes - for creating and managing savings rules
+	ruleGroup := s.app.Group("/rules")
+	{
+		handler := rule.New(s.db, s.sessionManager)
+
+		// All rule routes require authentication
+		ruleGroup.Post("/", auth.Handle, ro.WrapHandler(handler.CreateRule))
+		ruleGroup.Get("/", auth.Handle, ro.WrapHandler3(handler.ListRules))
+		ruleGroup.Get("/:id", auth.Handle, ro.WrapHandler3(handler.GetRule))
+		ruleGroup.Patch("/:id", auth.Handle, ro.WrapHandler(handler.UpdateRule))
+		ruleGroup.Delete("/:id", auth.Handle, ro.WrapHandler4(handler.DeleteRule))
+		ruleGroup.Patch("/:id/toggle", auth.Handle, ro.WrapHandler3(handler.ToggleRule))
+		ruleGroup.Get("/:id/executions", auth.Handle, ro.WrapHandler3(handler.GetRuleExecutions))
 	}
 }

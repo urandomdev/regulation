@@ -9,6 +9,9 @@ import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/pushsubscription"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/ruleexecution"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/user"
 
 	"entgo.io/ent/dialect"
@@ -135,6 +138,51 @@ func (_c *UserCreate) AddPushSubscriptions(v ...*PushSubscription) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddPushSubscriptionIDs(ids...)
+}
+
+// AddRuleIDs adds the "rules" edge to the Rule entity by IDs.
+func (_c *UserCreate) AddRuleIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddRuleIDs(ids...)
+	return _c
+}
+
+// AddRules adds the "rules" edges to the Rule entity.
+func (_c *UserCreate) AddRules(v ...*Rule) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddRuleIDs(ids...)
+}
+
+// AddRuleExecutionIDs adds the "rule_executions" edge to the RuleExecution entity by IDs.
+func (_c *UserCreate) AddRuleExecutionIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddRuleExecutionIDs(ids...)
+	return _c
+}
+
+// AddRuleExecutions adds the "rule_executions" edges to the RuleExecution entity.
+func (_c *UserCreate) AddRuleExecutions(v ...*RuleExecution) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddRuleExecutionIDs(ids...)
+}
+
+// AddSavingsTransferIDs adds the "savings_transfers" edge to the SavingsTransfer entity by IDs.
+func (_c *UserCreate) AddSavingsTransferIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddSavingsTransferIDs(ids...)
+	return _c
+}
+
+// AddSavingsTransfers adds the "savings_transfers" edges to the SavingsTransfer entity.
+func (_c *UserCreate) AddSavingsTransfers(v ...*SavingsTransfer) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSavingsTransferIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -311,6 +359,54 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(pushsubscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.RulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RulesTable,
+			Columns: []string{user.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(rule.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.RuleExecutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RuleExecutionsTable,
+			Columns: []string{user.RuleExecutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ruleexecution.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SavingsTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SavingsTransfersTable,
+			Columns: []string{user.SavingsTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(savingstransfer.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

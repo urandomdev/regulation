@@ -67,6 +67,7 @@ func (Transaction) Edges() []ent.Edge {
 			Field("account_id").
 			Required().
 			Unique(),
+		edge.To("rule_executions", RuleExecution.Type),
 	}
 }
 

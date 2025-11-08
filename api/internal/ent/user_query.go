@@ -11,6 +11,9 @@ import (
 	"regulation/internal/ent/item"
 	"regulation/internal/ent/predicate"
 	"regulation/internal/ent/pushsubscription"
+	"regulation/internal/ent/rule"
+	"regulation/internal/ent/ruleexecution"
+	"regulation/internal/ent/savingstransfer"
 	"regulation/internal/ent/user"
 
 	"entgo.io/ent"
@@ -33,6 +36,9 @@ type UserQuery struct {
 	withItems             *ItemQuery
 	withAccounts          *AccountQuery
 	withPushSubscriptions *PushSubscriptionQuery
+	withRules             *RuleQuery
+	withRuleExecutions    *RuleExecutionQuery
+	withSavingsTransfers  *SavingsTransferQuery
 	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -173,6 +179,72 @@ func (_q *UserQuery) QueryPushSubscriptions() *PushSubscriptionQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(pushsubscription.Table, pushsubscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.PushSubscriptionsTable, user.PushSubscriptionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRules chains the current query on the "rules" edge.
+func (_q *UserQuery) QueryRules() *RuleQuery {
+	query := (&RuleClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(rule.Table, rule.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.RulesTable, user.RulesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRuleExecutions chains the current query on the "rule_executions" edge.
+func (_q *UserQuery) QueryRuleExecutions() *RuleExecutionQuery {
+	query := (&RuleExecutionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(ruleexecution.Table, ruleexecution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.RuleExecutionsTable, user.RuleExecutionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySavingsTransfers chains the current query on the "savings_transfers" edge.
+func (_q *UserQuery) QuerySavingsTransfers() *SavingsTransferQuery {
+	query := (&SavingsTransferClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(savingstransfer.Table, savingstransfer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SavingsTransfersTable, user.SavingsTransfersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -377,6 +449,9 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withItems:             _q.withItems.Clone(),
 		withAccounts:          _q.withAccounts.Clone(),
 		withPushSubscriptions: _q.withPushSubscriptions.Clone(),
+		withRules:             _q.withRules.Clone(),
+		withRuleExecutions:    _q.withRuleExecutions.Clone(),
+		withSavingsTransfers:  _q.withSavingsTransfers.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -436,6 +511,39 @@ func (_q *UserQuery) WithPushSubscriptions(opts ...func(*PushSubscriptionQuery))
 		opt(query)
 	}
 	_q.withPushSubscriptions = query
+	return _q
+}
+
+// WithRules tells the query-builder to eager-load the nodes that are connected to
+// the "rules" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithRules(opts ...func(*RuleQuery)) *UserQuery {
+	query := (&RuleClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withRules = query
+	return _q
+}
+
+// WithRuleExecutions tells the query-builder to eager-load the nodes that are connected to
+// the "rule_executions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithRuleExecutions(opts ...func(*RuleExecutionQuery)) *UserQuery {
+	query := (&RuleExecutionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withRuleExecutions = query
+	return _q
+}
+
+// WithSavingsTransfers tells the query-builder to eager-load the nodes that are connected to
+// the "savings_transfers" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithSavingsTransfers(opts ...func(*SavingsTransferQuery)) *UserQuery {
+	query := (&SavingsTransferClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSavingsTransfers = query
 	return _q
 }
 
@@ -517,12 +625,15 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [8]bool{
 			_q.withUser != nil,
 			_q.withCustodyAccount != nil,
 			_q.withItems != nil,
 			_q.withAccounts != nil,
 			_q.withPushSubscriptions != nil,
+			_q.withRules != nil,
+			_q.withRuleExecutions != nil,
+			_q.withSavingsTransfers != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -577,6 +688,27 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadPushSubscriptions(ctx, query, nodes,
 			func(n *User) { n.Edges.PushSubscriptions = []*PushSubscription{} },
 			func(n *User, e *PushSubscription) { n.Edges.PushSubscriptions = append(n.Edges.PushSubscriptions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withRules; query != nil {
+		if err := _q.loadRules(ctx, query, nodes,
+			func(n *User) { n.Edges.Rules = []*Rule{} },
+			func(n *User, e *Rule) { n.Edges.Rules = append(n.Edges.Rules, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withRuleExecutions; query != nil {
+		if err := _q.loadRuleExecutions(ctx, query, nodes,
+			func(n *User) { n.Edges.RuleExecutions = []*RuleExecution{} },
+			func(n *User, e *RuleExecution) { n.Edges.RuleExecutions = append(n.Edges.RuleExecutions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSavingsTransfers; query != nil {
+		if err := _q.loadSavingsTransfers(ctx, query, nodes,
+			func(n *User) { n.Edges.SavingsTransfers = []*SavingsTransfer{} },
+			func(n *User, e *SavingsTransfer) { n.Edges.SavingsTransfers = append(n.Edges.SavingsTransfers, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -723,6 +855,96 @@ func (_q *UserQuery) loadPushSubscriptions(ctx context.Context, query *PushSubsc
 	}
 	query.Where(predicate.PushSubscription(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.PushSubscriptionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadRules(ctx context.Context, query *RuleQuery, nodes []*User, init func(*User), assign func(*User, *Rule)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(rule.FieldUserID)
+	}
+	query.Where(predicate.Rule(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.RulesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadRuleExecutions(ctx context.Context, query *RuleExecutionQuery, nodes []*User, init func(*User), assign func(*User, *RuleExecution)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ruleexecution.FieldUserID)
+	}
+	query.Where(predicate.RuleExecution(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.RuleExecutionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadSavingsTransfers(ctx context.Context, query *SavingsTransferQuery, nodes []*User, init func(*User), assign func(*User, *SavingsTransfer)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(savingstransfer.FieldUserID)
+	}
+	query.Where(predicate.SavingsTransfer(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.SavingsTransfersColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
