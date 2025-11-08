@@ -5,7 +5,7 @@ import './RulesPreview.css';
 
 const RulesPreview = () => {
     const navigate = useNavigate();
-    const [rules, setRules] = useState(userRules.slice(0, 3)); 
+    const [rules, setRules] = useState(userRules.slice(0, 3));
 
     const activeRules = getActiveRulesCount();
     const totalRules = getTotalRulesCount();

@@ -15,7 +15,7 @@ const Dashboard = () => {
       {/* Header */}
       <div className="dashboard-header">
         <h1>Hello, Alex!</h1>
-        <button className="header-add-button" onClick={() => navigate('/add-rule')}>
+        <button className="header-add-button" onClick={() => navigate('/rules')}>
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
