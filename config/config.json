@@ -22,5 +22,10 @@
   "openai": {
     "api_key": "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"
   },
+  "webpush": {
+    "vapid_public_key": "BJFUogIDPr_1NpQMUoiBSTpnZrsS0BZZTWNLDRV1O4jvKmIGX7kreizXu37uLk78zVZvmr8Sm0bxn9jO4DenQyU",
+    "vapid_private_key": "F8j-wtv33tmOwmlE2Z69KVOf5NMQtO4TlGtOMZ2ewes",
+    "subscriber": "misile@duck.com"
+  },
   "debug": true
 }
