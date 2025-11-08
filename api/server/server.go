@@ -139,3 +139,21 @@ func (s *Server) shutdown() {
 		s.cache.Close()
 	}
 }
+
+// Run initializes and starts the server
+func (s *Server) Run(ctx context.Context) error {
+	if err := s.init(ctx); err != nil {
+		return fmt.Errorf("failed to initialize server: %w", err)
+	}
+
+	s.logger.Info().Msg("server initialized successfully")
+
+	defer s.shutdown()
+
+	s.logger.Info().Msg("starting server")
+	if err := s.listen(ctx); err != nil {
+		return fmt.Errorf("server error: %w", err)
+	}
+
+	return nil
+}

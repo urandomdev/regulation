@@ -1,0 +1,90 @@
+name: "Build Container"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+  create:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - uses: ko-build/setup-ko@v0.9
+        with:
+          use-sudo: 'true'
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        id: meta
+        name: Docker meta (release)
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/urandomdev/regulation
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=short
+          flavor: latest=true
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        name: build release
+        env:
+          KO_DOCKER_REPO: ghcr.io/urandomdev/regulation
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAGS=$(printf "%s\n" "${{ steps.meta.outputs.tags }}" | awk -F: '{print $2}')
+          TAG_ARGS=$(printf "%s\n" "$TAGS" | awk '{print "-t",$0}' | xargs)
+          ko build \
+            --platform=linux/amd64 --platform=linux/arm64 \
+            --bare \
+            $TAG_ARGS \
+            ./api/cmd/regulation
+
+      - if: "!startsWith(github.ref, 'refs/tags/v')"
+        id: meta_dev
+        name: Docker meta (development)
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/urandomdev/regulation
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=short
+          flavor: latest=false
+
+      - if: "!startsWith(github.ref, 'refs/tags/v')"
+        name: build development
+        env:
+          KO_DOCKER_REPO: ghcr.io/urandomdev/regulation
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAGS=$(printf "%s\n" "${{ steps.meta_dev.outputs.tags }}" | awk -F: '{print $2}')
+          TAG_ARGS=$(printf "%s\n" "$TAGS" | awk '{print "-t",$0}' | xargs)
+          ko build \
+            --platform=linux/amd64 --platform=linux/arm64 \
+            --sbom=none \
+            --bare \
+            $TAG_ARGS \
+            ./api/cmd/regulation

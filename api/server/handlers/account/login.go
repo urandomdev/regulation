@@ -23,7 +23,10 @@ func (h *Handler) Login(ctx fiber.Ctx, req *LoginRequest) error {
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return protocol.InvalidCredentials()
+			return protocol.ErrorResponse{
+				Code:    protocol.InvalidCredentialsError,
+				Message: "invalid email or password",
+			}
 		}
 		return fmt.Errorf("failed to query user: %w", err)
 	}
@@ -31,7 +34,10 @@ func (h *Handler) Login(ctx fiber.Ctx, req *LoginRequest) error {
 	// Verify password
 	valid, err := password.Verify(u.Password, []byte(req.Password))
 	if err != nil || !valid {
-		return protocol.InvalidCredentials()
+		return protocol.ErrorResponse{
+			Code:    protocol.InvalidCredentialsError,
+			Message: "invalid email or password",
+		}
 	}
 
 	// Create session
