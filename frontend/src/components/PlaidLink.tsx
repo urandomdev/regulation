@@ -105,7 +105,7 @@ export function PlaidLinkButton({
       id: tx.id.toString(),
       name: tx.merchant_name || tx.name,
       amountCents: Number(tx.amount),
-      date: tx.date instanceof Date ? tx.date.toISOString() : tx.date?.toString?.() ?? new Date().toISOString(),
+      date: tx.date instanceof Date ? tx.date.toISOString() : new Date().toISOString(),
     }))
   }, [])
 

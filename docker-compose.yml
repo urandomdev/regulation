@@ -32,10 +32,7 @@ services:
       retries: 5
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    pull_policy: build
+    image:
     container_name: regulation-api
     restart: unless-stopped
     ports:
