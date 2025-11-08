@@ -15,6 +15,6 @@ func (s *Server) route() {
 	s.app.Post("/account/login", ro.WrapHandler2(handler.Login))
 
 	// Protected routes (authentication required)
-	s.app.Post("/account/logout", auth.Handle, handler.Logout)
-	s.app.Get("/account/me", auth.Handle, handler.Me)
+	s.app.Post("/account/logout", auth.Handle, ro.WrapHandler4(handler.Logout))
+	s.app.Get("/account/me", auth.Handle, ro.WrapHandler3(handler.Me))
 }

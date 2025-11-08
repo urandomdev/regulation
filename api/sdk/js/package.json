@@ -28,10 +28,10 @@
   "files": [
     "dist"
   ],
-  "name": "@generated/js",
+  "name": "@urandomdev/regulation",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/urandomdev/regulation.git"
   },
   "scripts": {
     "build": "node bundle.js",
@@ -39,5 +39,5 @@
   },
   "sideEffects": false,
   "type": "module",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
