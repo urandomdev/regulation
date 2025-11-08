@@ -20,6 +20,14 @@
       "import": "./dist/esm/regulation/server/handlers/account.js",
       "types": "./dist/esm/regulation/server/handlers/account.d.ts"
     },
+    "./financial": {
+      "import": "./dist/esm/regulation/server/handlers/financial.js",
+      "types": "./dist/esm/regulation/server/handlers/financial.d.ts"
+    },
+    "./plaid": {
+      "import": "./dist/esm/regulation/server/handlers/plaid.js",
+      "types": "./dist/esm/regulation/server/handlers/plaid.d.ts"
+    },
     "./static/*": {
       "import": "./dist/esm/static/*.js",
       "types": "./dist/esm/static/*.d.ts"
@@ -39,5 +47,5 @@
   },
   "sideEffects": false,
   "type": "module",
-  "version": "0.2.0"
+  "version": "0.4.0"
 }
