@@ -15,7 +15,7 @@ import (
 
 func (s *Server) route() {
 	s.app.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"},
+		AllowOrigins: s.config.CORS.AllowedOrigins,
 	}))
 
 	s.app.Use(middleware.NewRequestInfoMiddleware())

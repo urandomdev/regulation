@@ -27,6 +27,7 @@ type Config struct {
 	Plaid   *PlaidConfig `json:"plaid"`
 	OpenAI  *OpenAI      `json:"openai"`
 	WebPush *WebPush     `json:"webpush,omitempty"`
+	CORS    *CORS        `json:"cors"`
 
 	Debug bool `json:"debug"`
 
