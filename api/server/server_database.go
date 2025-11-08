@@ -9,7 +9,6 @@ import (
 	"regulation/internal/ent"
 
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/DeltaLaboratory/contrib/atlasutil"
 	"github.com/DeltaLaboratory/entcache"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -60,7 +59,8 @@ func (s *Server) setupDatabase(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	if err := atlasutil.Migrate(ctx, s.config.DB.URI(), ""); err != nil {
+	// Run database migrations using Ent's auto-migration
+	if err := s.db.Schema.Create(ctx); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 

@@ -1,0 +1,17 @@
+{
+  "database": {
+    "host": "postgres",
+    "port": 5432,
+    "user": "regulation",
+    "password": "regulation",
+    "database": "regulation",
+    "tls": false
+  },
+  "redis": {
+    "host": "redis",
+    "port": 6379,
+    "database": 0,
+    "password": ""
+  },
+  "debug": true
+}

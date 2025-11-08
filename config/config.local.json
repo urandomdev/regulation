@@ -1,0 +1,17 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "regulation",
+    "password": "regulation",
+    "database": "regulation",
+    "tls": false
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "database": 0,
+    "password": ""
+  },
+  "debug": true
+}
