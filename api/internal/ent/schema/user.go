@@ -35,5 +35,6 @@ func (User) Edges() []ent.Edge {
 			From("user"),
 		edge.To("items", Item.Type),
 		edge.To("accounts", Account.Type),
+		edge.To("push_subscriptions", PushSubscription.Type),
 	}
 }

@@ -12,6 +12,9 @@ type Account func(*sql.Selector)
 // Item is the predicate function for item builders.
 type Item func(*sql.Selector)
 
+// PushSubscription is the predicate function for pushsubscription builders.
+type PushSubscription func(*sql.Selector)
+
 // SyncCursor is the predicate function for synccursor builders.
 type SyncCursor func(*sql.Selector)
 

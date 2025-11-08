@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
+	"regulation/internal/ent/pushsubscription"
 	"regulation/internal/ent/user"
 
 	"entgo.io/ent/dialect"
@@ -119,6 +120,21 @@ func (_c *UserCreate) AddAccounts(v ...*Account) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddAccountIDs(ids...)
+}
+
+// AddPushSubscriptionIDs adds the "push_subscriptions" edge to the PushSubscription entity by IDs.
+func (_c *UserCreate) AddPushSubscriptionIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddPushSubscriptionIDs(ids...)
+	return _c
+}
+
+// AddPushSubscriptions adds the "push_subscriptions" edges to the PushSubscription entity.
+func (_c *UserCreate) AddPushSubscriptions(v ...*PushSubscription) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPushSubscriptionIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -279,6 +295,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(account.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PushSubscriptionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PushSubscriptionsTable,
+			Columns: []string{user.PushSubscriptionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pushsubscription.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

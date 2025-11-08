@@ -18,6 +18,8 @@ type Tx struct {
 	Account *AccountClient
 	// Item is the client for interacting with the Item builders.
 	Item *ItemClient
+	// PushSubscription is the client for interacting with the PushSubscription builders.
+	PushSubscription *PushSubscriptionClient
 	// SyncCursor is the client for interacting with the SyncCursor builders.
 	SyncCursor *SyncCursorClient
 	// Transaction is the client for interacting with the Transaction builders.
@@ -157,6 +159,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Account = NewAccountClient(tx.config)
 	tx.Item = NewItemClient(tx.config)
+	tx.PushSubscription = NewPushSubscriptionClient(tx.config)
 	tx.SyncCursor = NewSyncCursorClient(tx.config)
 	tx.Transaction = NewTransactionClient(tx.config)
 	tx.User = NewUserClient(tx.config)

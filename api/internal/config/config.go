@@ -22,10 +22,11 @@ const (
 
 // Config represents the application configuration
 type Config struct {
-	DB     *DB          `json:"database"`
-	Redis  *Redis       `json:"redis"`
-	Plaid  *PlaidConfig `json:"plaid"`
-	OpenAI *OpenAI      `json:"openai"`
+	DB      *DB          `json:"database"`
+	Redis   *Redis       `json:"redis"`
+	Plaid   *PlaidConfig `json:"plaid"`
+	OpenAI  *OpenAI      `json:"openai"`
+	WebPush *WebPush     `json:"webpush,omitempty"`
 
 	Debug bool `json:"debug"`
 

@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
+	"regulation/internal/ent/pushsubscription"
 	"regulation/internal/ent/synccursor"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
@@ -77,11 +78,12 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			account.Table:     account.ValidColumn,
-			item.Table:        item.ValidColumn,
-			synccursor.Table:  synccursor.ValidColumn,
-			transaction.Table: transaction.ValidColumn,
-			user.Table:        user.ValidColumn,
+			account.Table:          account.ValidColumn,
+			item.Table:             item.ValidColumn,
+			pushsubscription.Table: pushsubscription.ValidColumn,
+			synccursor.Table:       synccursor.ValidColumn,
+			transaction.Table:      transaction.ValidColumn,
+			user.Table:             user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

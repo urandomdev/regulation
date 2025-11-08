@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/plaid/plaid-go/v30/plaid"
+	"github.com/plaid/plaid-go/v35/plaid"
 
 	"regulation/internal/config"
 )

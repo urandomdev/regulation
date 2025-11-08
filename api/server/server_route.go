@@ -5,6 +5,7 @@ import (
 	"regulation/server/handlers/account"
 	advisorhandler "regulation/server/handlers/advisor"
 	"regulation/server/handlers/financial"
+	"regulation/server/handlers/notification"
 	"regulation/server/handlers/plaid"
 	"regulation/server/middleware"
 )
@@ -56,5 +57,17 @@ func (s *Server) route() {
 		handler := advisorhandler.New(s.db, s.advisorService)
 		advisorGroup.Post("/budget-plan/test", ro.WrapHandler(handler.BudgetPlan))
 		advisorGroup.Post("/budget-plan/history", ro.WrapHandler(handler.BudgetPlanFromHistory))
+	}
+
+	notificationGroup := s.app.Group("/notification")
+	{
+		handler := notification.New(s.config, s.db)
+
+		// Public endpoint to get VAPID public key
+		notificationGroup.Get("/vapid", ro.WrapHandler3(handler.GetVAPIDPublicKey))
+
+		// Protected endpoints (authentication required)
+		notificationGroup.Post("/subscribe", auth.Handle, ro.WrapHandler2(handler.Subscribe))
+		notificationGroup.Delete("/subscribe", auth.Handle, ro.WrapHandler2(handler.Unsubscribe))
 	}
 }

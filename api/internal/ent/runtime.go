@@ -5,6 +5,7 @@ package ent
 import (
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
+	"regulation/internal/ent/pushsubscription"
 	"regulation/internal/ent/schema"
 	"regulation/internal/ent/synccursor"
 	"regulation/internal/ent/transaction"
@@ -82,6 +83,38 @@ func init() {
 	itemDescID := itemFields[0].Descriptor()
 	// item.DefaultID holds the default value on creation for the id field.
 	item.DefaultID = itemDescID.Default.(func() uuid.UUID)
+	pushsubscriptionFields := schema.PushSubscription{}.Fields()
+	_ = pushsubscriptionFields
+	// pushsubscriptionDescEndpoint is the schema descriptor for endpoint field.
+	pushsubscriptionDescEndpoint := pushsubscriptionFields[2].Descriptor()
+	// pushsubscription.EndpointValidator is a validator for the "endpoint" field. It is called by the builders before save.
+	pushsubscription.EndpointValidator = pushsubscriptionDescEndpoint.Validators[0].(func(string) error)
+	// pushsubscriptionDescP256dh is the schema descriptor for p256dh field.
+	pushsubscriptionDescP256dh := pushsubscriptionFields[3].Descriptor()
+	// pushsubscription.P256dhValidator is a validator for the "p256dh" field. It is called by the builders before save.
+	pushsubscription.P256dhValidator = pushsubscriptionDescP256dh.Validators[0].(func(string) error)
+	// pushsubscriptionDescAuth is the schema descriptor for auth field.
+	pushsubscriptionDescAuth := pushsubscriptionFields[4].Descriptor()
+	// pushsubscription.AuthValidator is a validator for the "auth" field. It is called by the builders before save.
+	pushsubscription.AuthValidator = pushsubscriptionDescAuth.Validators[0].(func(string) error)
+	// pushsubscriptionDescActive is the schema descriptor for active field.
+	pushsubscriptionDescActive := pushsubscriptionFields[5].Descriptor()
+	// pushsubscription.DefaultActive holds the default value on creation for the active field.
+	pushsubscription.DefaultActive = pushsubscriptionDescActive.Default.(bool)
+	// pushsubscriptionDescCreatedAt is the schema descriptor for created_at field.
+	pushsubscriptionDescCreatedAt := pushsubscriptionFields[6].Descriptor()
+	// pushsubscription.DefaultCreatedAt holds the default value on creation for the created_at field.
+	pushsubscription.DefaultCreatedAt = pushsubscriptionDescCreatedAt.Default.(func() time.Time)
+	// pushsubscriptionDescUpdatedAt is the schema descriptor for updated_at field.
+	pushsubscriptionDescUpdatedAt := pushsubscriptionFields[7].Descriptor()
+	// pushsubscription.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	pushsubscription.DefaultUpdatedAt = pushsubscriptionDescUpdatedAt.Default.(func() time.Time)
+	// pushsubscription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	pushsubscription.UpdateDefaultUpdatedAt = pushsubscriptionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// pushsubscriptionDescID is the schema descriptor for id field.
+	pushsubscriptionDescID := pushsubscriptionFields[0].Descriptor()
+	// pushsubscription.DefaultID holds the default value on creation for the id field.
+	pushsubscription.DefaultID = pushsubscriptionDescID.Default.(func() uuid.UUID)
 	synccursorFields := schema.SyncCursor{}.Fields()
 	_ = synccursorFields
 	// synccursorDescCursor is the schema descriptor for cursor field.

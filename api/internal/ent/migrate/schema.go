@@ -98,6 +98,43 @@ var (
 			},
 		},
 	}
+	// PushSubscriptionsColumns holds the columns for the "push_subscriptions" table.
+	PushSubscriptionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "endpoint", Type: field.TypeString},
+		{Name: "p256dh", Type: field.TypeString},
+		{Name: "auth", Type: field.TypeString},
+		{Name: "active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// PushSubscriptionsTable holds the schema information for the "push_subscriptions" table.
+	PushSubscriptionsTable = &schema.Table{
+		Name:       "push_subscriptions",
+		Columns:    PushSubscriptionsColumns,
+		PrimaryKey: []*schema.Column{PushSubscriptionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "push_subscriptions_users_push_subscriptions",
+				Columns:    []*schema.Column{PushSubscriptionsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pushsubscription_user_id_active",
+				Unique:  false,
+				Columns: []*schema.Column{PushSubscriptionsColumns[7], PushSubscriptionsColumns[4]},
+			},
+			{
+				Name:    "pushsubscription_endpoint",
+				Unique:  true,
+				Columns: []*schema.Column{PushSubscriptionsColumns[1]},
+			},
+		},
+	}
 	// SyncCursorsColumns holds the columns for the "sync_cursors" table.
 	SyncCursorsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -204,6 +241,7 @@ var (
 	Tables = []*schema.Table{
 		AccountsTable,
 		ItemsTable,
+		PushSubscriptionsTable,
 		SyncCursorsTable,
 		TransactionsTable,
 		UsersTable,
@@ -214,6 +252,7 @@ func init() {
 	AccountsTable.ForeignKeys[0].RefTable = ItemsTable
 	AccountsTable.ForeignKeys[1].RefTable = UsersTable
 	ItemsTable.ForeignKeys[0].RefTable = UsersTable
+	PushSubscriptionsTable.ForeignKeys[0].RefTable = UsersTable
 	SyncCursorsTable.ForeignKeys[0].RefTable = ItemsTable
 	TransactionsTable.ForeignKeys[0].RefTable = AccountsTable
 	UsersTable.ForeignKeys[0].RefTable = UsersTable

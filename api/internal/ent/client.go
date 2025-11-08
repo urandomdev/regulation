@@ -13,6 +13,7 @@ import (
 
 	"regulation/internal/ent/account"
 	"regulation/internal/ent/item"
+	"regulation/internal/ent/pushsubscription"
 	"regulation/internal/ent/synccursor"
 	"regulation/internal/ent/transaction"
 	"regulation/internal/ent/user"
@@ -35,6 +36,8 @@ type Client struct {
 	Account *AccountClient
 	// Item is the client for interacting with the Item builders.
 	Item *ItemClient
+	// PushSubscription is the client for interacting with the PushSubscription builders.
+	PushSubscription *PushSubscriptionClient
 	// SyncCursor is the client for interacting with the SyncCursor builders.
 	SyncCursor *SyncCursorClient
 	// Transaction is the client for interacting with the Transaction builders.
@@ -54,6 +57,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Account = NewAccountClient(c.config)
 	c.Item = NewItemClient(c.config)
+	c.PushSubscription = NewPushSubscriptionClient(c.config)
 	c.SyncCursor = NewSyncCursorClient(c.config)
 	c.Transaction = NewTransactionClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -147,13 +151,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		Account:     NewAccountClient(cfg),
-		Item:        NewItemClient(cfg),
-		SyncCursor:  NewSyncCursorClient(cfg),
-		Transaction: NewTransactionClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:              ctx,
+		config:           cfg,
+		Account:          NewAccountClient(cfg),
+		Item:             NewItemClient(cfg),
+		PushSubscription: NewPushSubscriptionClient(cfg),
+		SyncCursor:       NewSyncCursorClient(cfg),
+		Transaction:      NewTransactionClient(cfg),
+		User:             NewUserClient(cfg),
 	}, nil
 }
 
@@ -171,13 +176,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		Account:     NewAccountClient(cfg),
-		Item:        NewItemClient(cfg),
-		SyncCursor:  NewSyncCursorClient(cfg),
-		Transaction: NewTransactionClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:              ctx,
+		config:           cfg,
+		Account:          NewAccountClient(cfg),
+		Item:             NewItemClient(cfg),
+		PushSubscription: NewPushSubscriptionClient(cfg),
+		SyncCursor:       NewSyncCursorClient(cfg),
+		Transaction:      NewTransactionClient(cfg),
+		User:             NewUserClient(cfg),
 	}, nil
 }
 
@@ -206,21 +212,21 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Account.Use(hooks...)
-	c.Item.Use(hooks...)
-	c.SyncCursor.Use(hooks...)
-	c.Transaction.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Account, c.Item, c.PushSubscription, c.SyncCursor, c.Transaction, c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Account.Intercept(interceptors...)
-	c.Item.Intercept(interceptors...)
-	c.SyncCursor.Intercept(interceptors...)
-	c.Transaction.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Account, c.Item, c.PushSubscription, c.SyncCursor, c.Transaction, c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -230,6 +236,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Account.mutate(ctx, m)
 	case *ItemMutation:
 		return c.Item.mutate(ctx, m)
+	case *PushSubscriptionMutation:
+		return c.PushSubscription.mutate(ctx, m)
 	case *SyncCursorMutation:
 		return c.SyncCursor.mutate(ctx, m)
 	case *TransactionMutation:
@@ -600,6 +608,155 @@ func (c *ItemClient) mutate(ctx context.Context, m *ItemMutation) (Value, error)
 		return (&ItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Item mutation op: %q", m.Op())
+	}
+}
+
+// PushSubscriptionClient is a client for the PushSubscription schema.
+type PushSubscriptionClient struct {
+	config
+}
+
+// NewPushSubscriptionClient returns a client for the PushSubscription from the given config.
+func NewPushSubscriptionClient(c config) *PushSubscriptionClient {
+	return &PushSubscriptionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pushsubscription.Hooks(f(g(h())))`.
+func (c *PushSubscriptionClient) Use(hooks ...Hook) {
+	c.hooks.PushSubscription = append(c.hooks.PushSubscription, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `pushsubscription.Intercept(f(g(h())))`.
+func (c *PushSubscriptionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PushSubscription = append(c.inters.PushSubscription, interceptors...)
+}
+
+// Create returns a builder for creating a PushSubscription entity.
+func (c *PushSubscriptionClient) Create() *PushSubscriptionCreate {
+	mutation := newPushSubscriptionMutation(c.config, OpCreate)
+	return &PushSubscriptionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PushSubscription entities.
+func (c *PushSubscriptionClient) CreateBulk(builders ...*PushSubscriptionCreate) *PushSubscriptionCreateBulk {
+	return &PushSubscriptionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PushSubscriptionClient) MapCreateBulk(slice any, setFunc func(*PushSubscriptionCreate, int)) *PushSubscriptionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PushSubscriptionCreateBulk{err: fmt.Errorf("calling to PushSubscriptionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PushSubscriptionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PushSubscriptionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PushSubscription.
+func (c *PushSubscriptionClient) Update() *PushSubscriptionUpdate {
+	mutation := newPushSubscriptionMutation(c.config, OpUpdate)
+	return &PushSubscriptionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PushSubscriptionClient) UpdateOne(_m *PushSubscription) *PushSubscriptionUpdateOne {
+	mutation := newPushSubscriptionMutation(c.config, OpUpdateOne, withPushSubscription(_m))
+	return &PushSubscriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PushSubscriptionClient) UpdateOneID(id uuid.UUID) *PushSubscriptionUpdateOne {
+	mutation := newPushSubscriptionMutation(c.config, OpUpdateOne, withPushSubscriptionID(id))
+	return &PushSubscriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PushSubscription.
+func (c *PushSubscriptionClient) Delete() *PushSubscriptionDelete {
+	mutation := newPushSubscriptionMutation(c.config, OpDelete)
+	return &PushSubscriptionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PushSubscriptionClient) DeleteOne(_m *PushSubscription) *PushSubscriptionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PushSubscriptionClient) DeleteOneID(id uuid.UUID) *PushSubscriptionDeleteOne {
+	builder := c.Delete().Where(pushsubscription.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PushSubscriptionDeleteOne{builder}
+}
+
+// Query returns a query builder for PushSubscription.
+func (c *PushSubscriptionClient) Query() *PushSubscriptionQuery {
+	return &PushSubscriptionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePushSubscription},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PushSubscription entity by its id.
+func (c *PushSubscriptionClient) Get(ctx context.Context, id uuid.UUID) (*PushSubscription, error) {
+	return c.Query().Where(pushsubscription.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PushSubscriptionClient) GetX(ctx context.Context, id uuid.UUID) *PushSubscription {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a PushSubscription.
+func (c *PushSubscriptionClient) QueryUser(_m *PushSubscription) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pushsubscription.Table, pushsubscription.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, pushsubscription.UserTable, pushsubscription.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PushSubscriptionClient) Hooks() []Hook {
+	return c.hooks.PushSubscription
+}
+
+// Interceptors returns the client interceptors.
+func (c *PushSubscriptionClient) Interceptors() []Interceptor {
+	return c.inters.PushSubscription
+}
+
+func (c *PushSubscriptionClient) mutate(ctx context.Context, m *PushSubscriptionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PushSubscriptionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PushSubscriptionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PushSubscriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PushSubscriptionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PushSubscription mutation op: %q", m.Op())
 	}
 }
 
@@ -1073,6 +1230,22 @@ func (c *UserClient) QueryAccounts(_m *User) *AccountQuery {
 	return query
 }
 
+// QueryPushSubscriptions queries the push_subscriptions edge of a User.
+func (c *UserClient) QueryPushSubscriptions(_m *User) *PushSubscriptionQuery {
+	query := (&PushSubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(pushsubscription.Table, pushsubscription.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PushSubscriptionsTable, user.PushSubscriptionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1101,10 +1274,10 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Account, Item, SyncCursor, Transaction, User []ent.Hook
+		Account, Item, PushSubscription, SyncCursor, Transaction, User []ent.Hook
 	}
 	inters struct {
-		Account, Item, SyncCursor, Transaction, User []ent.Interceptor
+		Account, Item, PushSubscription, SyncCursor, Transaction, User []ent.Interceptor
 	}
 )
 
