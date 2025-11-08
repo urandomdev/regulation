@@ -203,3 +203,17 @@ func (p *plaidClientImpl) convertTransaction(tx plaid.Transaction) Transaction {
 		PaymentChannel: paymentChannel,
 	}
 }
+
+// RefreshTransactions triggers a refresh of transactions (for sandbox testing)
+func (p *plaidClientImpl) RefreshTransactions(ctx context.Context, accessToken string) error {
+	request := plaid.NewTransactionsRefreshRequest(accessToken)
+
+	_, _, err := p.client.PlaidApi.TransactionsRefresh(ctx).
+		TransactionsRefreshRequest(*request).
+		Execute()
+	if err != nil {
+		return fmt.Errorf("failed to refresh transactions: %w", err)
+	}
+
+	return nil
+}

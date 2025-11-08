@@ -42,27 +42,19 @@ func (h *Handler) GetAccountTransactions(ctx fiber.Ctx, req *GetAccountTransacti
 		return nil, fmt.Errorf("failed to query account: %w", err)
 	}
 
-	// Set default date range to current month if not provided
-	now := time.Now()
-	start := req.Start
-	end := req.End
-
-	if start == nil {
-		monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		start = &monthStart
-	}
-
-	if end == nil {
-		monthEnd := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location()).Add(-time.Second)
-		end = &monthEnd
-	}
-
 	// Query transactions for this account
 	query := h.db.Transaction.
 		Query().
-		Where(transaction.AccountID(acc.ID)).
-		Where(transaction.DateGTE(*start)).
-		Where(transaction.DateLTE(*end))
+		Where(transaction.AccountID(acc.ID))
+
+	// Apply optional date range filters
+	if req.Start != nil {
+		query = query.Where(transaction.DateGTE(*req.Start))
+	}
+
+	if req.End != nil {
+		query = query.Where(transaction.DateLTE(*req.End))
+	}
 
 	// Get total count
 	total, err := query.Count(ctx)

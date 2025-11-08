@@ -195,6 +195,8 @@ CREATE TABLE "sync_cursors" (
   "id" uuid NOT NULL,
   "cursor" character varying NOT NULL DEFAULT '',
   "last_sync_at" timestamptz NOT NULL,
+  "last_error" character varying NOT NULL DEFAULT '',
+  "consecutive_failures" bigint NOT NULL DEFAULT 0,
   "item_id" uuid NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "sync_cursors_items_sync_cursor" FOREIGN KEY ("item_id") REFERENCES "items" ("id") ON DELETE NO ACTION

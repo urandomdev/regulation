@@ -30,7 +30,14 @@ func (SyncCursor) Fields() []ent.Field {
 			Comment("Plaid sync cursor for incremental updates"),
 		field.Time("last_sync_at").
 			Default(time.Now).
-			Comment("Last successful sync timestamp"),
+			UpdateDefault(time.Now).
+			Comment("Last sync attempt timestamp"),
+		field.String("last_error").
+			Default("").
+			Comment("Most recent error message, empty if successful"),
+		field.Int("consecutive_failures").
+			Default(0).
+			Comment("Number of consecutive failed sync attempts"),
 	}
 }
 

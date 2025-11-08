@@ -10,6 +10,7 @@ type MockPlaidClient struct {
 	ExchangePublicTokenFn func(ctx context.Context, publicToken string) (*TokenExchangeResult, error)
 	GetAccountsFn         func(ctx context.Context, accessToken string) ([]Account, error)
 	SyncTransactionsFn    func(ctx context.Context, accessToken, cursor string) (*TransactionSyncResult, error)
+	RefreshTransactionsFn func(ctx context.Context, accessToken string) error
 }
 
 // NewMockPlaidClient creates a new mock Plaid client with default behaviors
@@ -131,4 +132,13 @@ func (m *MockPlaidClient) SyncTransactions(ctx context.Context, accessToken, cur
 		Cursor:   "mock-cursor",
 		HasMore:  false,
 	}, nil
+}
+
+// RefreshTransactions refreshes mock transactions
+func (m *MockPlaidClient) RefreshTransactions(ctx context.Context, accessToken string) error {
+	if m.RefreshTransactionsFn != nil {
+		return m.RefreshTransactionsFn(ctx, accessToken)
+	}
+	// Mock implementation does nothing
+	return nil
 }

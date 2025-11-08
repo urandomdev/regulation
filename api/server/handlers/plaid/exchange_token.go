@@ -1,6 +1,7 @@
 package plaid
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/DeltaLaboratory/contrib/hooks"
@@ -107,8 +108,10 @@ func (h *Handler) ExchangeToken(ctx fiber.Ctx, req *ExchangeTokenRequest) (ret e
 	// hooks.Rollback will auto-commit here since ret == nil
 
 	// Trigger initial transaction sync in the background
+	// IMPORTANT: Use context.Background() instead of the Fiber context
+	// to avoid nil pointer dereference when the HTTP request context is recycled
 	go func() {
-		_, err := h.syncService.SyncItemTransactions(ctx, itemEntity.ID)
+		_, err := h.syncService.SyncItemTransactions(context.Background(), itemEntity.ID)
 		if err != nil {
 			// Note: Using a new context-independent logger since this runs after response
 			_ = err // Background task error - already logged

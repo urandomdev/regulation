@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
-	"regulation/internal/advisor"
+	"regulation/internal/categorizer"
 	"regulation/internal/config"
 	"regulation/internal/ent"
+	"regulation/internal/rulesuggestion"
 	"regulation/internal/session"
 	"regulation/server/services/plaid"
 
@@ -35,14 +37,16 @@ type Server struct {
 	app    *fiber.App
 	config *config.Config
 
-	db             *ent.Client
-	advisorService *advisor.Service
-	cache          rueidis.Client
-	cacheLock      rueidislock.Locker
-	sessionManager *session.Manager
+	db                 *ent.Client
+	categorizerService *categorizer.Service
+	suggestionService  *rulesuggestion.Service
+	cache              rueidis.Client
+	cacheLock          rueidislock.Locker
+	sessionManager     *session.Manager
 
 	plaidClient plaid.Client
 	syncService *plaid.SyncService
+	syncWorker  *plaid.SyncWorker
 
 	logger zerolog.Logger
 }
@@ -104,14 +108,15 @@ func (s *Server) init(ctx context.Context) error {
 	// Initialize session manager
 	s.sessionManager = session.NewManager(s.cache)
 
-	// Initialize AI advisor using config
+	// Initialize AI categorizer and rule suggestion services using config
 	apiKey := ""
 	if s.config.OpenAI != nil {
 		apiKey = s.config.OpenAI.APIKey
 	}
-	s.advisorService = advisor.NewService(apiKey)
+	s.categorizerService = categorizer.NewService(apiKey)
+	s.suggestionService = rulesuggestion.NewService(apiKey)
 	if apiKey == "" {
-		s.logger.Warn().Msg("openai.api_key missing in config; GPT-5 budget endpoint will respond with 500")
+		s.logger.Warn().Msg("openai.api_key missing in config; categorizer and rule suggestion services will respond with errors")
 	}
 
 	if err = s.setupDatabase(ctx); err != nil {
@@ -130,7 +135,10 @@ func (s *Server) init(ctx context.Context) error {
 	}
 
 	// Initialize sync service
-	s.syncService = plaid.NewSyncService(s.plaidClient, s.db, s.config)
+	s.syncService = plaid.NewSyncService(s.plaidClient, s.db, s.config, s.categorizerService)
+
+	// Initialize sync worker with 30-second interval
+	s.syncWorker = plaid.NewSyncWorker(s.syncService, s.db, 30*time.Second)
 
 	s.route()
 
@@ -179,6 +187,9 @@ func (s *Server) Run(ctx context.Context) error {
 	s.logger.Info().Msg("server initialized successfully")
 
 	defer s.shutdown()
+
+	// Start sync worker in background
+	go s.syncWorker.Start(ctx)
 
 	s.logger.Info().Msg("starting server")
 	if err := s.listen(ctx); err != nil {

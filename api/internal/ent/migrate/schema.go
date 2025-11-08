@@ -315,6 +315,8 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "cursor", Type: field.TypeString, Default: ""},
 		{Name: "last_sync_at", Type: field.TypeTime},
+		{Name: "last_error", Type: field.TypeString, Default: ""},
+		{Name: "consecutive_failures", Type: field.TypeInt, Default: 0},
 		{Name: "item_id", Type: field.TypeUUID, Unique: true},
 	}
 	// SyncCursorsTable holds the schema information for the "sync_cursors" table.
@@ -325,7 +327,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sync_cursors_items_sync_cursor",
-				Columns:    []*schema.Column{SyncCursorsColumns[3]},
+				Columns:    []*schema.Column{SyncCursorsColumns[5]},
 				RefColumns: []*schema.Column{ItemsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -334,7 +336,7 @@ var (
 			{
 				Name:    "synccursor_item_id",
 				Unique:  true,
-				Columns: []*schema.Column{SyncCursorsColumns[3]},
+				Columns: []*schema.Column{SyncCursorsColumns[5]},
 			},
 		},
 	}

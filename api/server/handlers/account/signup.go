@@ -3,6 +3,9 @@ package account
 import (
 	"fmt"
 
+	"regulation/internal/ent"
+	"regulation/internal/protocol"
+
 	"github.com/DeltaLaboratory/contrib/hooks"
 	"github.com/DeltaLaboratory/password"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -29,6 +32,12 @@ func (h *Handler) Signup(ctx fiber.Ctx, req *SignupRequest) (ret error) {
 		SetPassword(hash).
 		SetNickname(req.Nickname).
 		Exec(ctx); err != nil {
+		if ent.IsConstraintError(err) {
+			return protocol.ErrorResponse{
+				Code:    protocol.InvalidRequest,
+				Message: "email already in use",
+			}
+		}
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 

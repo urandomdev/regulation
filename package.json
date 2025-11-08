@@ -1,17 +1,19 @@
 {
   "name": "regulation-monorepo",
-  "version": "1.0.0",
+  "version": "0.7.0",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "api/sdk/js"
-  ],
   "scripts": {
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "build:sdk": "npm run build --workspace=@generated/js",
-    "build:frontend": "npm run build --workspace=frontend"
+    "dev": "pnpm --filter frontend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:sdk": "pnpm --filter @urandomdev/regulation build",
+    "lint": "pnpm --filter frontend lint",
+    "preview": "pnpm --filter frontend preview"
   },
-  "devDependencies": {
-    "web-push": "^3.6.7"
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
   }
 }

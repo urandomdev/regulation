@@ -65,11 +65,38 @@ func (_u *SyncCursorUpdate) SetLastSyncAt(v time.Time) *SyncCursorUpdate {
 	return _u
 }
 
-// SetNillableLastSyncAt sets the "last_sync_at" field if the given value is not nil.
-func (_u *SyncCursorUpdate) SetNillableLastSyncAt(v *time.Time) *SyncCursorUpdate {
+// SetLastError sets the "last_error" field.
+func (_u *SyncCursorUpdate) SetLastError(v string) *SyncCursorUpdate {
+	_u.mutation.SetLastError(v)
+	return _u
+}
+
+// SetNillableLastError sets the "last_error" field if the given value is not nil.
+func (_u *SyncCursorUpdate) SetNillableLastError(v *string) *SyncCursorUpdate {
 	if v != nil {
-		_u.SetLastSyncAt(*v)
+		_u.SetLastError(*v)
 	}
+	return _u
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (_u *SyncCursorUpdate) SetConsecutiveFailures(v int) *SyncCursorUpdate {
+	_u.mutation.ResetConsecutiveFailures()
+	_u.mutation.SetConsecutiveFailures(v)
+	return _u
+}
+
+// SetNillableConsecutiveFailures sets the "consecutive_failures" field if the given value is not nil.
+func (_u *SyncCursorUpdate) SetNillableConsecutiveFailures(v *int) *SyncCursorUpdate {
+	if v != nil {
+		_u.SetConsecutiveFailures(*v)
+	}
+	return _u
+}
+
+// AddConsecutiveFailures adds value to the "consecutive_failures" field.
+func (_u *SyncCursorUpdate) AddConsecutiveFailures(v int) *SyncCursorUpdate {
+	_u.mutation.AddConsecutiveFailures(v)
 	return _u
 }
 
@@ -91,6 +118,7 @@ func (_u *SyncCursorUpdate) ClearItem() *SyncCursorUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SyncCursorUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -113,6 +141,14 @@ func (_u *SyncCursorUpdate) Exec(ctx context.Context) error {
 func (_u *SyncCursorUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SyncCursorUpdate) defaults() {
+	if _, ok := _u.mutation.LastSyncAt(); !ok {
+		v := synccursor.UpdateDefaultLastSyncAt()
+		_u.mutation.SetLastSyncAt(v)
 	}
 }
 
@@ -147,6 +183,15 @@ func (_u *SyncCursorUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	}
 	if value, ok := _u.mutation.LastSyncAt(); ok {
 		_spec.SetField(synccursor.FieldLastSyncAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.LastError(); ok {
+		_spec.SetField(synccursor.FieldLastError, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ConsecutiveFailures(); ok {
+		_spec.SetField(synccursor.FieldConsecutiveFailures, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedConsecutiveFailures(); ok {
+		_spec.AddField(synccursor.FieldConsecutiveFailures, field.TypeInt, value)
 	}
 	if _u.mutation.ItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -233,11 +278,38 @@ func (_u *SyncCursorUpdateOne) SetLastSyncAt(v time.Time) *SyncCursorUpdateOne {
 	return _u
 }
 
-// SetNillableLastSyncAt sets the "last_sync_at" field if the given value is not nil.
-func (_u *SyncCursorUpdateOne) SetNillableLastSyncAt(v *time.Time) *SyncCursorUpdateOne {
+// SetLastError sets the "last_error" field.
+func (_u *SyncCursorUpdateOne) SetLastError(v string) *SyncCursorUpdateOne {
+	_u.mutation.SetLastError(v)
+	return _u
+}
+
+// SetNillableLastError sets the "last_error" field if the given value is not nil.
+func (_u *SyncCursorUpdateOne) SetNillableLastError(v *string) *SyncCursorUpdateOne {
 	if v != nil {
-		_u.SetLastSyncAt(*v)
+		_u.SetLastError(*v)
 	}
+	return _u
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (_u *SyncCursorUpdateOne) SetConsecutiveFailures(v int) *SyncCursorUpdateOne {
+	_u.mutation.ResetConsecutiveFailures()
+	_u.mutation.SetConsecutiveFailures(v)
+	return _u
+}
+
+// SetNillableConsecutiveFailures sets the "consecutive_failures" field if the given value is not nil.
+func (_u *SyncCursorUpdateOne) SetNillableConsecutiveFailures(v *int) *SyncCursorUpdateOne {
+	if v != nil {
+		_u.SetConsecutiveFailures(*v)
+	}
+	return _u
+}
+
+// AddConsecutiveFailures adds value to the "consecutive_failures" field.
+func (_u *SyncCursorUpdateOne) AddConsecutiveFailures(v int) *SyncCursorUpdateOne {
+	_u.mutation.AddConsecutiveFailures(v)
 	return _u
 }
 
@@ -272,6 +344,7 @@ func (_u *SyncCursorUpdateOne) Select(field string, fields ...string) *SyncCurso
 
 // Save executes the query and returns the updated SyncCursor entity.
 func (_u *SyncCursorUpdateOne) Save(ctx context.Context) (*SyncCursor, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -294,6 +367,14 @@ func (_u *SyncCursorUpdateOne) Exec(ctx context.Context) error {
 func (_u *SyncCursorUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SyncCursorUpdateOne) defaults() {
+	if _, ok := _u.mutation.LastSyncAt(); !ok {
+		v := synccursor.UpdateDefaultLastSyncAt()
+		_u.mutation.SetLastSyncAt(v)
 	}
 }
 
@@ -345,6 +426,15 @@ func (_u *SyncCursorUpdateOne) sqlSave(ctx context.Context) (_node *SyncCursor, 
 	}
 	if value, ok := _u.mutation.LastSyncAt(); ok {
 		_spec.SetField(synccursor.FieldLastSyncAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.LastError(); ok {
+		_spec.SetField(synccursor.FieldLastError, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ConsecutiveFailures(); ok {
+		_spec.SetField(synccursor.FieldConsecutiveFailures, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedConsecutiveFailures(); ok {
+		_spec.AddField(synccursor.FieldConsecutiveFailures, field.TypeInt, value)
 	}
 	if _u.mutation.ItemCleared() {
 		edge := &sqlgraph.EdgeSpec{

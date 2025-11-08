@@ -1,125 +1,122 @@
-# React UI/UX Application
+# Regulation Frontend
 
-A React application with Family Management, Billing Overview, and Saving Goals features.
+React + TypeScript frontend for the Regulation personal finance app ("Who Are You To Spend?").
 
-## Features Implemented
+## Tech Stack
 
-### 1. Family Management Component
-- **Renamed from**: "pedding controll" (as requested)
-- **Location**: `src/components/FamilyManagement.jsx`
-- Displays family management interface with clean design
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **React Router 7** - Client-side routing
+- **@urandomdev/regulation** - Generated SDK for API communication
 
-### 2. Billing Overview with Transaction History
-- **Location**: `src/components/BillingOverview.jsx`
-- **Interaction**: Clicking on "Billing Overview" toggles the Transaction History view
-- Shows billing summary with current balance, next payment, and payment method
-- Transaction History displays as an expandable section below the billing overview
+## Getting Started
 
-### 3. Upcoming Missions with Navigation
-- **Location**: `src/components/UpcomingMissions.jsx`
-- **Navigation**: Clicking on "Upcoming Missions" navigates to the Saving Goals page
-- Displays progress on current saving missions
-- Visual hover effects indicate clickability
+### Prerequisites
 
-### 4. Saving Goals Page
-- **Location**: `src/pages/SavingGoals.jsx`
-- Full page dedicated to all saving goals
-- Displays goal progress, target amounts, and deadlines
-- Back button to return to dashboard
+- Node.js 20+
+- pnpm 9+
+
+### Development
+
+From the monorepo root:
+
+```bash
+# Install dependencies (run from root)
+pnpm install
+
+# Start dev server
+pnpm dev:frontend
+
+# Or from this directory
+cd frontend
+pnpm dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### Environment Variables
+
+Copy `.env.example` to `.env.development`:
+
+```bash
+cp .env.example .env.development
+```
+
+Available variables:
+
+- `VITE_API_URL` - API endpoint URL (default: `http://localhost:8080`)
 
 ## Project Structure
 
 ```
 frontend/
 ├── src/
-│   ├── components/
-│   │   ├── FamilyManagement.jsx
-│   │   ├── FamilyManagement.css
-│   │   ├── BillingOverview.jsx
-│   │   ├── BillingOverview.css
-│   │   ├── TransactionHistory.jsx
-│   │   ├── TransactionHistory.css
-│   │   ├── UpcomingMissions.jsx
-│   │   └── UpcomingMissions.css
+│   ├── lib/
+│   │   └── api.ts          # SDK client configuration
 │   ├── pages/
-│   │   ├── Dashboard.jsx
-│   │   ├── Dashboard.css
-│   │   ├── SavingGoals.jsx
-│   │   └── SavingGoals.css
-│   ├── App.jsx
-│   ├── App.css
-│   └── main.jsx
-├── package.json
-└── vite.config.js
+│   │   ├── Home.tsx        # Landing page
+│   │   ├── Login.tsx       # Login page
+│   │   ├── Signup.tsx      # Sign up page
+│   │   ├── Dashboard.tsx   # User dashboard
+│   │   └── NotFound.tsx    # 404 page
+│   ├── components/         # Reusable components
+│   ├── App.tsx             # Main app with routes
+│   ├── main.tsx            # Entry point
+│   └── index.css           # Global styles
+├── public/                 # Static assets
+└── package.json
 ```
 
-## Installation & Running
+## Available Scripts
 
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm preview` - Preview production build
+- `pnpm lint` - Run ESLint
 
-### Steps
+## Using the SDK
 
-1. Navigate to the frontend directory:
-```bash
-cd frontend
+The SDK client is pre-configured in `src/lib/api.ts`:
+
+```typescript
+import { api } from './lib/api'
+
+// Login example
+const [user, error] = await api.account.login({
+  email: 'user@example.com',
+  password: 'password'
+})
+
+// List rules example
+const [rules, error] = await api.rule.listRules()
 ```
 
-2. Install dependencies (if not already installed):
-```bash
-npm install
-```
+The SDK uses the Result pattern returning `[data, null]` on success or `[null, error]` on failure.
 
-3. Start the development server:
-```bash
-npm run dev
-```
+## Routes
 
-4. Open your browser and navigate to:
-```
-http://localhost:5173/
-```
+- `/` - Home page
+- `/login` - User login
+- `/signup` - User registration
+- `/dashboard` - User dashboard (requires auth)
+- `*` - 404 Not Found
 
-## Usage
+## Development Notes
 
-### Dashboard
-The main dashboard displays three main components:
-- **Family Management**: Manage family members and accounts
-- **Billing Overview**: View billing summary (click to expand Transaction History)
-- **Upcoming Missions**: View saving progress (click to navigate to full Saving Goals page)
+- The app uses React Router v7 with declarative routing
+- API calls are made using the generated TypeScript SDK
+- Hot Module Replacement (HMR) is enabled for fast development
+- TypeScript strict mode is enabled for type safety
 
-### Navigation
-- Click on **"Upcoming Missions"** to navigate to the Saving Goals page
-- Click on **"Billing Overview"** header to toggle Transaction History
-- Use the **"Back to Dashboard"** button on the Saving Goals page to return
-
-## Design Philosophy
-
-- **Clean & Minimal**: Simple, modern design with card-based layouts
-- **Consistent Styling**: Uniform color scheme and spacing throughout
-- **Responsive**: Adapts to different screen sizes
-- **Interactive**: Hover effects and transitions for better UX
-- **Accessible**: Clear typography and color contrast
-
-## Technologies Used
-
-- **React**: UI library
-- **React Router**: Client-side routing
-- **Vite**: Build tool and development server
-- **CSS3**: Styling with modern features (Grid, Flexbox, Transitions)
-
-## Build for Production
+## Building for Production
 
 ```bash
-npm run build
+# From monorepo root
+pnpm build:frontend
+
+# Or from this directory
+pnpm build
 ```
 
-The production-ready files will be in the `dist/` directory.
-
-## Notes
-
-- All components maintain the existing design system
-- No external UI libraries were used to maintain full design control
-- All interactions are implemented with React state management
-- Routing is handled client-side with React Router
+The built files will be in the `dist/` directory.

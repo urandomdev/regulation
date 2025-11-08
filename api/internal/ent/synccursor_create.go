@@ -59,6 +59,34 @@ func (_c *SyncCursorCreate) SetNillableLastSyncAt(v *time.Time) *SyncCursorCreat
 	return _c
 }
 
+// SetLastError sets the "last_error" field.
+func (_c *SyncCursorCreate) SetLastError(v string) *SyncCursorCreate {
+	_c.mutation.SetLastError(v)
+	return _c
+}
+
+// SetNillableLastError sets the "last_error" field if the given value is not nil.
+func (_c *SyncCursorCreate) SetNillableLastError(v *string) *SyncCursorCreate {
+	if v != nil {
+		_c.SetLastError(*v)
+	}
+	return _c
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (_c *SyncCursorCreate) SetConsecutiveFailures(v int) *SyncCursorCreate {
+	_c.mutation.SetConsecutiveFailures(v)
+	return _c
+}
+
+// SetNillableConsecutiveFailures sets the "consecutive_failures" field if the given value is not nil.
+func (_c *SyncCursorCreate) SetNillableConsecutiveFailures(v *int) *SyncCursorCreate {
+	if v != nil {
+		_c.SetConsecutiveFailures(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SyncCursorCreate) SetID(v uuid.UUID) *SyncCursorCreate {
 	_c.mutation.SetID(v)
@@ -121,6 +149,14 @@ func (_c *SyncCursorCreate) defaults() {
 		v := synccursor.DefaultLastSyncAt()
 		_c.mutation.SetLastSyncAt(v)
 	}
+	if _, ok := _c.mutation.LastError(); !ok {
+		v := synccursor.DefaultLastError
+		_c.mutation.SetLastError(v)
+	}
+	if _, ok := _c.mutation.ConsecutiveFailures(); !ok {
+		v := synccursor.DefaultConsecutiveFailures
+		_c.mutation.SetConsecutiveFailures(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := synccursor.DefaultID()
 		_c.mutation.SetID(v)
@@ -137,6 +173,12 @@ func (_c *SyncCursorCreate) check() error {
 	}
 	if _, ok := _c.mutation.LastSyncAt(); !ok {
 		return &ValidationError{Name: "last_sync_at", err: errors.New(`ent: missing required field "SyncCursor.last_sync_at"`)}
+	}
+	if _, ok := _c.mutation.LastError(); !ok {
+		return &ValidationError{Name: "last_error", err: errors.New(`ent: missing required field "SyncCursor.last_error"`)}
+	}
+	if _, ok := _c.mutation.ConsecutiveFailures(); !ok {
+		return &ValidationError{Name: "consecutive_failures", err: errors.New(`ent: missing required field "SyncCursor.consecutive_failures"`)}
 	}
 	if len(_c.mutation.ItemIDs()) == 0 {
 		return &ValidationError{Name: "item", err: errors.New(`ent: missing required edge "SyncCursor.item"`)}
@@ -184,6 +226,14 @@ func (_c *SyncCursorCreate) createSpec() (*SyncCursor, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LastSyncAt(); ok {
 		_spec.SetField(synccursor.FieldLastSyncAt, field.TypeTime, value)
 		_node.LastSyncAt = value
+	}
+	if value, ok := _c.mutation.LastError(); ok {
+		_spec.SetField(synccursor.FieldLastError, field.TypeString, value)
+		_node.LastError = value
+	}
+	if value, ok := _c.mutation.ConsecutiveFailures(); ok {
+		_spec.SetField(synccursor.FieldConsecutiveFailures, field.TypeInt, value)
+		_node.ConsecutiveFailures = value
 	}
 	if nodes := _c.mutation.ItemIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -290,6 +340,36 @@ func (u *SyncCursorUpsert) UpdateLastSyncAt() *SyncCursorUpsert {
 	return u
 }
 
+// SetLastError sets the "last_error" field.
+func (u *SyncCursorUpsert) SetLastError(v string) *SyncCursorUpsert {
+	u.Set(synccursor.FieldLastError, v)
+	return u
+}
+
+// UpdateLastError sets the "last_error" field to the value that was provided on create.
+func (u *SyncCursorUpsert) UpdateLastError() *SyncCursorUpsert {
+	u.SetExcluded(synccursor.FieldLastError)
+	return u
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (u *SyncCursorUpsert) SetConsecutiveFailures(v int) *SyncCursorUpsert {
+	u.Set(synccursor.FieldConsecutiveFailures, v)
+	return u
+}
+
+// UpdateConsecutiveFailures sets the "consecutive_failures" field to the value that was provided on create.
+func (u *SyncCursorUpsert) UpdateConsecutiveFailures() *SyncCursorUpsert {
+	u.SetExcluded(synccursor.FieldConsecutiveFailures)
+	return u
+}
+
+// AddConsecutiveFailures adds v to the "consecutive_failures" field.
+func (u *SyncCursorUpsert) AddConsecutiveFailures(v int) *SyncCursorUpsert {
+	u.Add(synccursor.FieldConsecutiveFailures, v)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -377,6 +457,41 @@ func (u *SyncCursorUpsertOne) SetLastSyncAt(v time.Time) *SyncCursorUpsertOne {
 func (u *SyncCursorUpsertOne) UpdateLastSyncAt() *SyncCursorUpsertOne {
 	return u.Update(func(s *SyncCursorUpsert) {
 		s.UpdateLastSyncAt()
+	})
+}
+
+// SetLastError sets the "last_error" field.
+func (u *SyncCursorUpsertOne) SetLastError(v string) *SyncCursorUpsertOne {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.SetLastError(v)
+	})
+}
+
+// UpdateLastError sets the "last_error" field to the value that was provided on create.
+func (u *SyncCursorUpsertOne) UpdateLastError() *SyncCursorUpsertOne {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.UpdateLastError()
+	})
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (u *SyncCursorUpsertOne) SetConsecutiveFailures(v int) *SyncCursorUpsertOne {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.SetConsecutiveFailures(v)
+	})
+}
+
+// AddConsecutiveFailures adds v to the "consecutive_failures" field.
+func (u *SyncCursorUpsertOne) AddConsecutiveFailures(v int) *SyncCursorUpsertOne {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.AddConsecutiveFailures(v)
+	})
+}
+
+// UpdateConsecutiveFailures sets the "consecutive_failures" field to the value that was provided on create.
+func (u *SyncCursorUpsertOne) UpdateConsecutiveFailures() *SyncCursorUpsertOne {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.UpdateConsecutiveFailures()
 	})
 }
 
@@ -634,6 +749,41 @@ func (u *SyncCursorUpsertBulk) SetLastSyncAt(v time.Time) *SyncCursorUpsertBulk 
 func (u *SyncCursorUpsertBulk) UpdateLastSyncAt() *SyncCursorUpsertBulk {
 	return u.Update(func(s *SyncCursorUpsert) {
 		s.UpdateLastSyncAt()
+	})
+}
+
+// SetLastError sets the "last_error" field.
+func (u *SyncCursorUpsertBulk) SetLastError(v string) *SyncCursorUpsertBulk {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.SetLastError(v)
+	})
+}
+
+// UpdateLastError sets the "last_error" field to the value that was provided on create.
+func (u *SyncCursorUpsertBulk) UpdateLastError() *SyncCursorUpsertBulk {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.UpdateLastError()
+	})
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (u *SyncCursorUpsertBulk) SetConsecutiveFailures(v int) *SyncCursorUpsertBulk {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.SetConsecutiveFailures(v)
+	})
+}
+
+// AddConsecutiveFailures adds v to the "consecutive_failures" field.
+func (u *SyncCursorUpsertBulk) AddConsecutiveFailures(v int) *SyncCursorUpsertBulk {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.AddConsecutiveFailures(v)
+	})
+}
+
+// UpdateConsecutiveFailures sets the "consecutive_failures" field to the value that was provided on create.
+func (u *SyncCursorUpsertBulk) UpdateConsecutiveFailures() *SyncCursorUpsertBulk {
+	return u.Update(func(s *SyncCursorUpsert) {
+		s.UpdateConsecutiveFailures()
 	})
 }
 

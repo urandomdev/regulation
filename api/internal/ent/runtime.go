@@ -184,6 +184,16 @@ func init() {
 	synccursorDescLastSyncAt := synccursorFields[3].Descriptor()
 	// synccursor.DefaultLastSyncAt holds the default value on creation for the last_sync_at field.
 	synccursor.DefaultLastSyncAt = synccursorDescLastSyncAt.Default.(func() time.Time)
+	// synccursor.UpdateDefaultLastSyncAt holds the default value on update for the last_sync_at field.
+	synccursor.UpdateDefaultLastSyncAt = synccursorDescLastSyncAt.UpdateDefault.(func() time.Time)
+	// synccursorDescLastError is the schema descriptor for last_error field.
+	synccursorDescLastError := synccursorFields[4].Descriptor()
+	// synccursor.DefaultLastError holds the default value on creation for the last_error field.
+	synccursor.DefaultLastError = synccursorDescLastError.Default.(string)
+	// synccursorDescConsecutiveFailures is the schema descriptor for consecutive_failures field.
+	synccursorDescConsecutiveFailures := synccursorFields[5].Descriptor()
+	// synccursor.DefaultConsecutiveFailures holds the default value on creation for the consecutive_failures field.
+	synccursor.DefaultConsecutiveFailures = synccursorDescConsecutiveFailures.Default.(int)
 	// synccursorDescID is the schema descriptor for id field.
 	synccursorDescID := synccursorFields[0].Descriptor()
 	// synccursor.DefaultID holds the default value on creation for the id field.

@@ -3,33 +3,36 @@ package plaid
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
+	"regulation/internal/categorizer"
 	"regulation/internal/config"
 	"regulation/internal/ent"
 	entaccount "regulation/internal/ent/account"
 	entitem "regulation/internal/ent/item"
 	entsynccursor "regulation/internal/ent/synccursor"
 	enttransaction "regulation/internal/ent/transaction"
-	"regulation/server/services"
 	"regulation/server/services/rule"
 )
 
 // SyncService handles transaction synchronization from Plaid
 type SyncService struct {
-	plaidClient Client
-	entClient   *ent.Client
-	ruleEngine  *rule.Engine
+	plaidClient        Client
+	entClient          *ent.Client
+	ruleEngine         *rule.Engine
+	categorizerService *categorizer.Service
 }
 
 // NewSyncService creates a new transaction sync service
-func NewSyncService(plaidClient Client, entClient *ent.Client, cfg *config.Config) *SyncService {
+func NewSyncService(plaidClient Client, entClient *ent.Client, cfg *config.Config, categorizerSvc *categorizer.Service) *SyncService {
 	return &SyncService{
-		plaidClient: plaidClient,
-		entClient:   entClient,
-		ruleEngine:  rule.NewEngine(entClient, cfg),
+		plaidClient:        plaidClient,
+		entClient:          entClient,
+		ruleEngine:         rule.NewEngine(entClient, cfg),
+		categorizerService: categorizerSvc,
 	}
 }
 
@@ -42,12 +45,15 @@ func (s *SyncService) SyncItemTransactions(ctx context.Context, itemID uuid.UUID
 		Where(entitem.IsActive(true)).
 		Only(ctx)
 	if err != nil {
+		// Record failure in cursor
+		_ = s.recordSyncError(ctx, itemID, fmt.Errorf("failed to load item: %w", err))
 		return 0, fmt.Errorf("failed to load item: %w", err)
 	}
 
 	// Load or create sync cursor
 	cursor, err := s.getOrCreateCursor(ctx, itemID)
 	if err != nil {
+		_ = s.recordSyncError(ctx, itemID, fmt.Errorf("failed to get sync cursor: %w", err))
 		return 0, fmt.Errorf("failed to get sync cursor: %w", err)
 	}
 
@@ -60,22 +66,26 @@ func (s *SyncService) SyncItemTransactions(ctx context.Context, itemID uuid.UUID
 		// Call Plaid API to sync transactions
 		result, err := s.plaidClient.SyncTransactions(ctx, item.AccessToken, currentCursor)
 		if err != nil {
+			_ = s.recordSyncError(ctx, itemID, fmt.Errorf("failed to sync transactions: %w", err))
 			return totalSynced, fmt.Errorf("failed to sync transactions: %w", err)
 		}
 
 		// Process added transactions
 		if err := s.processAddedTransactions(ctx, result.Added); err != nil {
+			_ = s.recordSyncError(ctx, itemID, fmt.Errorf("failed to process added transactions: %w", err))
 			return totalSynced, fmt.Errorf("failed to process added transactions: %w", err)
 		}
 		totalSynced += len(result.Added)
 
 		// Process modified transactions
 		if err := s.processModifiedTransactions(ctx, result.Modified); err != nil {
+			_ = s.recordSyncError(ctx, itemID, fmt.Errorf("failed to process modified transactions: %w", err))
 			return totalSynced, fmt.Errorf("failed to process modified transactions: %w", err)
 		}
 
 		// Process removed transactions
 		if err := s.processRemovedTransactions(ctx, result.Removed); err != nil {
+			_ = s.recordSyncError(ctx, itemID, fmt.Errorf("failed to process removed transactions: %w", err))
 			return totalSynced, fmt.Errorf("failed to process removed transactions: %w", err)
 		}
 
@@ -92,8 +102,8 @@ func (s *SyncService) SyncItemTransactions(ctx context.Context, itemID uuid.UUID
 			Msg("Transaction sync batch complete")
 	}
 
-	// Save the final cursor
-	if err := s.updateCursor(ctx, itemID, currentCursor); err != nil {
+	// Save the final cursor and mark success
+	if err := s.recordSyncSuccess(ctx, itemID, currentCursor); err != nil {
 		return totalSynced, fmt.Errorf("failed to update cursor: %w", err)
 	}
 
@@ -130,7 +140,26 @@ func (s *SyncService) SyncAllUserItems(ctx context.Context, userID uuid.UUID) (i
 
 // processAddedTransactions processes newly added transactions
 func (s *SyncService) processAddedTransactions(ctx context.Context, transactions []Transaction) error {
-	for _, tx := range transactions {
+	if len(transactions) == 0 {
+		return nil
+	}
+
+	// Step 1: Build categorization requests for batch processing
+	requests := make([]*categorizer.CategorizationRequest, len(transactions))
+	for i, tx := range transactions {
+		requests[i] = &categorizer.CategorizationRequest{
+			MerchantName:    tx.MerchantName,
+			TransactionName: tx.Name,
+			Amount:          float64(tx.Amount),
+			PlaidCategories: tx.Categories,
+		}
+	}
+
+	// Step 2: Batch categorize all transactions concurrently
+	responses, errors := s.categorizerService.CategorizeBatch(ctx, requests)
+
+	// Step 3: Process each transaction with its categorization result
+	for i, tx := range transactions {
 		// Get Account
 		account, err := s.entClient.Account.
 			Query().
@@ -144,8 +173,24 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 			continue
 		}
 
-		// Categorize transaction
-		category := services.CategorizeTransaction(tx.Categories)
+		// Get categorization result or use fallback
+		var categoryResp *categorizer.CategorizationResponse
+		if errors[i] != nil {
+			log.Error().
+				Err(errors[i]).
+				Str("transaction_id", tx.TransactionID).
+				Msg("Failed to categorize transaction with GPT, using fallback")
+			// Fallback to rule-based categorization
+			categoryResp = &categorizer.CategorizationResponse{
+				Category:   fallbackCategorize(tx.Categories),
+				Confidence: "low",
+				Reasoning:  "Fallback categorization due to GPT error",
+			}
+		} else {
+			categoryResp = responses[i]
+		}
+
+		category := categoryResp.Category
 
 		// Upsert transaction
 		err = s.entClient.Transaction.
@@ -161,7 +206,7 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 			SetPlaidCategories(tx.Categories).
 			SetPending(tx.Pending).
 			SetNillablePaymentChannel(&tx.PaymentChannel).
-			OnConflict().
+			OnConflictColumns(enttransaction.FieldPlaidID).
 			UpdateNewValues().
 			Exec(ctx)
 
@@ -205,7 +250,26 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 
 // processModifiedTransactions processes modified transactions
 func (s *SyncService) processModifiedTransactions(ctx context.Context, transactions []Transaction) error {
-	for _, tx := range transactions {
+	if len(transactions) == 0 {
+		return nil
+	}
+
+	// Step 1: Build categorization requests for batch processing
+	requests := make([]*categorizer.CategorizationRequest, len(transactions))
+	for i, tx := range transactions {
+		requests[i] = &categorizer.CategorizationRequest{
+			MerchantName:    tx.MerchantName,
+			TransactionName: tx.Name,
+			Amount:          float64(tx.Amount),
+			PlaidCategories: tx.Categories,
+		}
+	}
+
+	// Step 2: Batch categorize all transactions concurrently
+	responses, errors := s.categorizerService.CategorizeBatch(ctx, requests)
+
+	// Step 3: Process each transaction with its categorization result
+	for i, tx := range transactions {
 		// Get Account
 		account, err := s.entClient.Account.
 			Query().
@@ -219,8 +283,24 @@ func (s *SyncService) processModifiedTransactions(ctx context.Context, transacti
 			continue
 		}
 
-		// Categorize transaction
-		category := services.CategorizeTransaction(tx.Categories)
+		// Get categorization result or use fallback
+		var categoryResp *categorizer.CategorizationResponse
+		if errors[i] != nil {
+			log.Error().
+				Err(errors[i]).
+				Str("transaction_id", tx.TransactionID).
+				Msg("Failed to categorize transaction with GPT, using fallback")
+			// Fallback to rule-based categorization
+			categoryResp = &categorizer.CategorizationResponse{
+				Category:   fallbackCategorize(tx.Categories),
+				Confidence: "low",
+				Reasoning:  "Fallback categorization due to GPT error",
+			}
+		} else {
+			categoryResp = responses[i]
+		}
+
+		category := categoryResp.Category
 
 		// Update existing transaction
 		err = s.entClient.Transaction.
@@ -299,4 +379,151 @@ func (s *SyncService) updateCursor(ctx context.Context, itemID uuid.UUID, newCur
 		Where(entsynccursor.ItemID(itemID)).
 		SetCursor(newCursor).
 		Exec(ctx)
+}
+
+// recordSyncSuccess records a successful sync and resets error counters
+func (s *SyncService) recordSyncSuccess(ctx context.Context, itemID uuid.UUID, newCursor string) error {
+	return s.entClient.SyncCursor.
+		Update().
+		Where(entsynccursor.ItemID(itemID)).
+		SetCursor(newCursor).
+		SetLastError("").
+		SetConsecutiveFailures(0).
+		Exec(ctx)
+}
+
+// recordSyncError records a sync error and increments failure counter
+func (s *SyncService) recordSyncError(ctx context.Context, itemID uuid.UUID, err error) error {
+	// Get current cursor to increment consecutive failures
+	cursor, queryErr := s.entClient.SyncCursor.
+		Query().
+		Where(entsynccursor.ItemID(itemID)).
+		Only(ctx)
+
+	if queryErr != nil {
+		// If we can't query the cursor, just log and return
+		log.Error().
+			Err(queryErr).
+			Str("item_id", itemID.String()).
+			Msg("Failed to query cursor for error recording")
+		return queryErr
+	}
+
+	// Increment consecutive failures
+	newFailures := cursor.ConsecutiveFailures + 1
+
+	return s.entClient.SyncCursor.
+		Update().
+		Where(entsynccursor.ItemID(itemID)).
+		SetLastError(err.Error()).
+		SetConsecutiveFailures(newFailures).
+		Exec(ctx)
+}
+
+// fallbackCategorize provides rule-based categorization as a fallback when GPT fails
+func fallbackCategorize(plaidCategories []string) categorizer.CategoryType {
+	if len(plaidCategories) == 0 {
+		return categorizer.CategoryMisc
+	}
+
+	// Get the primary category (first element)
+	primary := strings.ToLower(plaidCategories[0])
+
+	// Check subcategories for more specific matching
+	var secondary string
+	if len(plaidCategories) > 1 {
+		secondary = strings.ToLower(plaidCategories[1])
+	}
+
+	// Map Plaid categories to app categories
+	switch {
+	// Transfer - ignore for rules (internal transfers)
+	case strings.Contains(primary, "transfer"):
+		return categorizer.CategoryTransfer
+	case strings.Contains(primary, "payment"):
+		return categorizer.CategoryTransfer
+
+	// Dining
+	case strings.Contains(primary, "food and drink"):
+		// Check if it's groceries
+		if strings.Contains(secondary, "groceries") || strings.Contains(secondary, "supermarket") {
+			return categorizer.CategoryGroceries
+		}
+		return categorizer.CategoryDining
+	case strings.Contains(primary, "restaurants"):
+		return categorizer.CategoryDining
+
+	// Groceries
+	case strings.Contains(primary, "groceries"):
+		return categorizer.CategoryGroceries
+	case strings.Contains(secondary, "supermarket"):
+		return categorizer.CategoryGroceries
+
+	// Transport
+	case strings.Contains(primary, "transportation"):
+		return categorizer.CategoryTransport
+	case strings.Contains(primary, "travel"):
+		return categorizer.CategoryTransport
+	case strings.Contains(secondary, "gas"):
+		return categorizer.CategoryTransport
+	case strings.Contains(secondary, "parking"):
+		return categorizer.CategoryTransport
+	case strings.Contains(secondary, "public transit"):
+		return categorizer.CategoryTransport
+	case strings.Contains(secondary, "ride share"):
+		return categorizer.CategoryTransport
+
+	// Shopping
+	case strings.Contains(primary, "shops"):
+		return categorizer.CategoryShopping
+	case strings.Contains(primary, "retail"):
+		return categorizer.CategoryShopping
+	case strings.Contains(secondary, "clothing"):
+		return categorizer.CategoryShopping
+	case strings.Contains(secondary, "electronics"):
+		return categorizer.CategoryShopping
+
+	// Subscriptions
+	case strings.Contains(secondary, "subscription"):
+		return categorizer.CategorySubscriptions
+	case strings.Contains(primary, "service"):
+		// Check if it's a recurring service
+		if strings.Contains(secondary, "streaming") ||
+			strings.Contains(secondary, "music") ||
+			strings.Contains(secondary, "software") {
+			return categorizer.CategorySubscriptions
+		}
+		return categorizer.CategoryMisc
+
+	// Entertainment
+	case strings.Contains(primary, "recreation"):
+		return categorizer.CategoryEntertainment
+	case strings.Contains(primary, "entertainment"):
+		return categorizer.CategoryEntertainment
+	case strings.Contains(secondary, "movie"):
+		return categorizer.CategoryEntertainment
+	case strings.Contains(secondary, "concert"):
+		return categorizer.CategoryEntertainment
+	case strings.Contains(secondary, "sporting"):
+		return categorizer.CategoryEntertainment
+
+	// Bills
+	case strings.Contains(primary, "bank fees"):
+		return categorizer.CategoryBills
+	case strings.Contains(primary, "interest"):
+		return categorizer.CategoryBills
+	case strings.Contains(secondary, "utilities"):
+		return categorizer.CategoryBills
+	case strings.Contains(secondary, "internet"):
+		return categorizer.CategoryBills
+	case strings.Contains(secondary, "phone"):
+		return categorizer.CategoryBills
+	case strings.Contains(secondary, "insurance"):
+		return categorizer.CategoryBills
+	case strings.Contains(secondary, "rent"):
+		return categorizer.CategoryBills
+
+	default:
+		return categorizer.CategoryMisc
+	}
 }

@@ -66,8 +66,8 @@ export class AccountAPI {
   /**
    * Signup creates a new user account
    */
-  async signup(params: SignupRequest): Promise<Result<void, 'internal_error'>> {
-    return this.client.request<SignupRequest, void, 'internal_error'>(
+  async signup(params: SignupRequest): Promise<Result<void, 'internal_error' | 'invalid_request'>> {
+    return this.client.request<SignupRequest, void, 'internal_error' | 'invalid_request'>(
       'POST',
       '/account/signup',
       params,

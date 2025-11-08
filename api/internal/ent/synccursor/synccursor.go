@@ -21,6 +21,10 @@ const (
 	FieldCursor = "cursor"
 	// FieldLastSyncAt holds the string denoting the last_sync_at field in the database.
 	FieldLastSyncAt = "last_sync_at"
+	// FieldLastError holds the string denoting the last_error field in the database.
+	FieldLastError = "last_error"
+	// FieldConsecutiveFailures holds the string denoting the consecutive_failures field in the database.
+	FieldConsecutiveFailures = "consecutive_failures"
 	// EdgeItem holds the string denoting the item edge name in mutations.
 	EdgeItem = "item"
 	// Table holds the table name of the synccursor in the database.
@@ -40,6 +44,8 @@ var Columns = []string{
 	FieldItemID,
 	FieldCursor,
 	FieldLastSyncAt,
+	FieldLastError,
+	FieldConsecutiveFailures,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -57,6 +63,12 @@ var (
 	DefaultCursor string
 	// DefaultLastSyncAt holds the default value on creation for the "last_sync_at" field.
 	DefaultLastSyncAt func() time.Time
+	// UpdateDefaultLastSyncAt holds the default value on update for the "last_sync_at" field.
+	UpdateDefaultLastSyncAt func() time.Time
+	// DefaultLastError holds the default value on creation for the "last_error" field.
+	DefaultLastError string
+	// DefaultConsecutiveFailures holds the default value on creation for the "consecutive_failures" field.
+	DefaultConsecutiveFailures int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -82,6 +94,16 @@ func ByCursor(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSyncAt orders the results by the last_sync_at field.
 func ByLastSyncAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSyncAt, opts...).ToFunc()
+}
+
+// ByLastError orders the results by the last_error field.
+func ByLastError(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastError, opts...).ToFunc()
+}
+
+// ByConsecutiveFailures orders the results by the consecutive_failures field.
+func ByConsecutiveFailures(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConsecutiveFailures, opts...).ToFunc()
 }
 
 // ByItemField orders the results by item field.

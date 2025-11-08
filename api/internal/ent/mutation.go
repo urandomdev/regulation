@@ -6770,17 +6770,20 @@ func (m *SavingsTransferMutation) ResetEdge(name string) error {
 // SyncCursorMutation represents an operation that mutates the SyncCursor nodes in the graph.
 type SyncCursorMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	cursor        *string
-	last_sync_at  *time.Time
-	clearedFields map[string]struct{}
-	item          *uuid.UUID
-	cleareditem   bool
-	done          bool
-	oldValue      func(context.Context) (*SyncCursor, error)
-	predicates    []predicate.SyncCursor
+	op                      Op
+	typ                     string
+	id                      *uuid.UUID
+	cursor                  *string
+	last_sync_at            *time.Time
+	last_error              *string
+	consecutive_failures    *int
+	addconsecutive_failures *int
+	clearedFields           map[string]struct{}
+	item                    *uuid.UUID
+	cleareditem             bool
+	done                    bool
+	oldValue                func(context.Context) (*SyncCursor, error)
+	predicates              []predicate.SyncCursor
 }
 
 var _ ent.Mutation = (*SyncCursorMutation)(nil)
@@ -6995,6 +6998,98 @@ func (m *SyncCursorMutation) ResetLastSyncAt() {
 	m.last_sync_at = nil
 }
 
+// SetLastError sets the "last_error" field.
+func (m *SyncCursorMutation) SetLastError(s string) {
+	m.last_error = &s
+}
+
+// LastError returns the value of the "last_error" field in the mutation.
+func (m *SyncCursorMutation) LastError() (r string, exists bool) {
+	v := m.last_error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastError returns the old "last_error" field's value of the SyncCursor entity.
+// If the SyncCursor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SyncCursorMutation) OldLastError(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastError: %w", err)
+	}
+	return oldValue.LastError, nil
+}
+
+// ResetLastError resets all changes to the "last_error" field.
+func (m *SyncCursorMutation) ResetLastError() {
+	m.last_error = nil
+}
+
+// SetConsecutiveFailures sets the "consecutive_failures" field.
+func (m *SyncCursorMutation) SetConsecutiveFailures(i int) {
+	m.consecutive_failures = &i
+	m.addconsecutive_failures = nil
+}
+
+// ConsecutiveFailures returns the value of the "consecutive_failures" field in the mutation.
+func (m *SyncCursorMutation) ConsecutiveFailures() (r int, exists bool) {
+	v := m.consecutive_failures
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldConsecutiveFailures returns the old "consecutive_failures" field's value of the SyncCursor entity.
+// If the SyncCursor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SyncCursorMutation) OldConsecutiveFailures(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldConsecutiveFailures is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldConsecutiveFailures requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldConsecutiveFailures: %w", err)
+	}
+	return oldValue.ConsecutiveFailures, nil
+}
+
+// AddConsecutiveFailures adds i to the "consecutive_failures" field.
+func (m *SyncCursorMutation) AddConsecutiveFailures(i int) {
+	if m.addconsecutive_failures != nil {
+		*m.addconsecutive_failures += i
+	} else {
+		m.addconsecutive_failures = &i
+	}
+}
+
+// AddedConsecutiveFailures returns the value that was added to the "consecutive_failures" field in this mutation.
+func (m *SyncCursorMutation) AddedConsecutiveFailures() (r int, exists bool) {
+	v := m.addconsecutive_failures
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetConsecutiveFailures resets all changes to the "consecutive_failures" field.
+func (m *SyncCursorMutation) ResetConsecutiveFailures() {
+	m.consecutive_failures = nil
+	m.addconsecutive_failures = nil
+}
+
 // ClearItem clears the "item" edge to the Item entity.
 func (m *SyncCursorMutation) ClearItem() {
 	m.cleareditem = true
@@ -7056,7 +7151,7 @@ func (m *SyncCursorMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SyncCursorMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 5)
 	if m.item != nil {
 		fields = append(fields, synccursor.FieldItemID)
 	}
@@ -7065,6 +7160,12 @@ func (m *SyncCursorMutation) Fields() []string {
 	}
 	if m.last_sync_at != nil {
 		fields = append(fields, synccursor.FieldLastSyncAt)
+	}
+	if m.last_error != nil {
+		fields = append(fields, synccursor.FieldLastError)
+	}
+	if m.consecutive_failures != nil {
+		fields = append(fields, synccursor.FieldConsecutiveFailures)
 	}
 	return fields
 }
@@ -7080,6 +7181,10 @@ func (m *SyncCursorMutation) Field(name string) (ent.Value, bool) {
 		return m.Cursor()
 	case synccursor.FieldLastSyncAt:
 		return m.LastSyncAt()
+	case synccursor.FieldLastError:
+		return m.LastError()
+	case synccursor.FieldConsecutiveFailures:
+		return m.ConsecutiveFailures()
 	}
 	return nil, false
 }
@@ -7095,6 +7200,10 @@ func (m *SyncCursorMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldCursor(ctx)
 	case synccursor.FieldLastSyncAt:
 		return m.OldLastSyncAt(ctx)
+	case synccursor.FieldLastError:
+		return m.OldLastError(ctx)
+	case synccursor.FieldConsecutiveFailures:
+		return m.OldConsecutiveFailures(ctx)
 	}
 	return nil, fmt.Errorf("unknown SyncCursor field %s", name)
 }
@@ -7125,6 +7234,20 @@ func (m *SyncCursorMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastSyncAt(v)
 		return nil
+	case synccursor.FieldLastError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastError(v)
+		return nil
+	case synccursor.FieldConsecutiveFailures:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetConsecutiveFailures(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SyncCursor field %s", name)
 }
@@ -7132,13 +7255,21 @@ func (m *SyncCursorMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *SyncCursorMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addconsecutive_failures != nil {
+		fields = append(fields, synccursor.FieldConsecutiveFailures)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *SyncCursorMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case synccursor.FieldConsecutiveFailures:
+		return m.AddedConsecutiveFailures()
+	}
 	return nil, false
 }
 
@@ -7147,6 +7278,13 @@ func (m *SyncCursorMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SyncCursorMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case synccursor.FieldConsecutiveFailures:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddConsecutiveFailures(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SyncCursor numeric field %s", name)
 }
@@ -7182,6 +7320,12 @@ func (m *SyncCursorMutation) ResetField(name string) error {
 		return nil
 	case synccursor.FieldLastSyncAt:
 		m.ResetLastSyncAt()
+		return nil
+	case synccursor.FieldLastError:
+		m.ResetLastError()
+		return nil
+	case synccursor.FieldConsecutiveFailures:
+		m.ResetConsecutiveFailures()
 		return nil
 	}
 	return fmt.Errorf("unknown SyncCursor field %s", name)

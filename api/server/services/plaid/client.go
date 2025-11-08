@@ -19,6 +19,9 @@ type Client interface {
 
 	// SyncTransactions retrieves transactions using the sync endpoint
 	SyncTransactions(ctx context.Context, accessToken, cursor string) (*TransactionSyncResult, error)
+
+	// RefreshTransactions triggers a refresh of transactions (for sandbox testing)
+	RefreshTransactions(ctx context.Context, accessToken string) error
 }
 
 // TokenExchangeResult contains the result of exchanging a public token

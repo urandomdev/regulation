@@ -23,8 +23,12 @@ type SyncCursor struct {
 	ItemID uuid.UUID `json:"item_id,omitempty"`
 	// Plaid sync cursor for incremental updates
 	Cursor string `json:"cursor,omitempty"`
-	// Last successful sync timestamp
+	// Last sync attempt timestamp
 	LastSyncAt time.Time `json:"last_sync_at,omitempty"`
+	// Most recent error message, empty if successful
+	LastError string `json:"last_error,omitempty"`
+	// Number of consecutive failed sync attempts
+	ConsecutiveFailures int `json:"consecutive_failures,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SyncCursorQuery when eager-loading is set.
 	Edges        SyncCursorEdges `json:"edges"`
@@ -56,7 +60,9 @@ func (*SyncCursor) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case synccursor.FieldCursor:
+		case synccursor.FieldConsecutiveFailures:
+			values[i] = new(sql.NullInt64)
+		case synccursor.FieldCursor, synccursor.FieldLastError:
 			values[i] = new(sql.NullString)
 		case synccursor.FieldLastSyncAt:
 			values[i] = new(sql.NullTime)
@@ -100,6 +106,18 @@ func (_m *SyncCursor) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field last_sync_at", values[i])
 			} else if value.Valid {
 				_m.LastSyncAt = value.Time
+			}
+		case synccursor.FieldLastError:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field last_error", values[i])
+			} else if value.Valid {
+				_m.LastError = value.String
+			}
+		case synccursor.FieldConsecutiveFailures:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field consecutive_failures", values[i])
+			} else if value.Valid {
+				_m.ConsecutiveFailures = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -150,6 +168,12 @@ func (_m *SyncCursor) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("last_sync_at=")
 	builder.WriteString(_m.LastSyncAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("last_error=")
+	builder.WriteString(_m.LastError)
+	builder.WriteString(", ")
+	builder.WriteString("consecutive_failures=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ConsecutiveFailures))
 	builder.WriteByte(')')
 	return builder.String()
 }

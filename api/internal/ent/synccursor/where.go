@@ -71,6 +71,16 @@ func LastSyncAt(v time.Time) predicate.SyncCursor {
 	return predicate.SyncCursor(sql.FieldEQ(FieldLastSyncAt, v))
 }
 
+// LastError applies equality check predicate on the "last_error" field. It's identical to LastErrorEQ.
+func LastError(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldEQ(FieldLastError, v))
+}
+
+// ConsecutiveFailures applies equality check predicate on the "consecutive_failures" field. It's identical to ConsecutiveFailuresEQ.
+func ConsecutiveFailures(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldEQ(FieldConsecutiveFailures, v))
+}
+
 // ItemIDEQ applies the EQ predicate on the "item_id" field.
 func ItemIDEQ(v uuid.UUID) predicate.SyncCursor {
 	return predicate.SyncCursor(sql.FieldEQ(FieldItemID, v))
@@ -194,6 +204,111 @@ func LastSyncAtLT(v time.Time) predicate.SyncCursor {
 // LastSyncAtLTE applies the LTE predicate on the "last_sync_at" field.
 func LastSyncAtLTE(v time.Time) predicate.SyncCursor {
 	return predicate.SyncCursor(sql.FieldLTE(FieldLastSyncAt, v))
+}
+
+// LastErrorEQ applies the EQ predicate on the "last_error" field.
+func LastErrorEQ(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldEQ(FieldLastError, v))
+}
+
+// LastErrorNEQ applies the NEQ predicate on the "last_error" field.
+func LastErrorNEQ(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldNEQ(FieldLastError, v))
+}
+
+// LastErrorIn applies the In predicate on the "last_error" field.
+func LastErrorIn(vs ...string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldIn(FieldLastError, vs...))
+}
+
+// LastErrorNotIn applies the NotIn predicate on the "last_error" field.
+func LastErrorNotIn(vs ...string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldNotIn(FieldLastError, vs...))
+}
+
+// LastErrorGT applies the GT predicate on the "last_error" field.
+func LastErrorGT(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldGT(FieldLastError, v))
+}
+
+// LastErrorGTE applies the GTE predicate on the "last_error" field.
+func LastErrorGTE(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldGTE(FieldLastError, v))
+}
+
+// LastErrorLT applies the LT predicate on the "last_error" field.
+func LastErrorLT(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldLT(FieldLastError, v))
+}
+
+// LastErrorLTE applies the LTE predicate on the "last_error" field.
+func LastErrorLTE(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldLTE(FieldLastError, v))
+}
+
+// LastErrorContains applies the Contains predicate on the "last_error" field.
+func LastErrorContains(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldContains(FieldLastError, v))
+}
+
+// LastErrorHasPrefix applies the HasPrefix predicate on the "last_error" field.
+func LastErrorHasPrefix(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldHasPrefix(FieldLastError, v))
+}
+
+// LastErrorHasSuffix applies the HasSuffix predicate on the "last_error" field.
+func LastErrorHasSuffix(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldHasSuffix(FieldLastError, v))
+}
+
+// LastErrorEqualFold applies the EqualFold predicate on the "last_error" field.
+func LastErrorEqualFold(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldEqualFold(FieldLastError, v))
+}
+
+// LastErrorContainsFold applies the ContainsFold predicate on the "last_error" field.
+func LastErrorContainsFold(v string) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldContainsFold(FieldLastError, v))
+}
+
+// ConsecutiveFailuresEQ applies the EQ predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresEQ(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldEQ(FieldConsecutiveFailures, v))
+}
+
+// ConsecutiveFailuresNEQ applies the NEQ predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresNEQ(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldNEQ(FieldConsecutiveFailures, v))
+}
+
+// ConsecutiveFailuresIn applies the In predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresIn(vs ...int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldIn(FieldConsecutiveFailures, vs...))
+}
+
+// ConsecutiveFailuresNotIn applies the NotIn predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresNotIn(vs ...int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldNotIn(FieldConsecutiveFailures, vs...))
+}
+
+// ConsecutiveFailuresGT applies the GT predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresGT(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldGT(FieldConsecutiveFailures, v))
+}
+
+// ConsecutiveFailuresGTE applies the GTE predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresGTE(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldGTE(FieldConsecutiveFailures, v))
+}
+
+// ConsecutiveFailuresLT applies the LT predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresLT(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldLT(FieldConsecutiveFailures, v))
+}
+
+// ConsecutiveFailuresLTE applies the LTE predicate on the "consecutive_failures" field.
+func ConsecutiveFailuresLTE(v int) predicate.SyncCursor {
+	return predicate.SyncCursor(sql.FieldLTE(FieldConsecutiveFailures, v))
 }
 
 // HasItem applies the HasEdge predicate on the "item" edge.
