@@ -14,6 +14,17 @@ export interface Account {
   available_balance?: bigint | null
   is_active: boolean
 }
+export interface Transaction {
+  id: UUID
+  account_id: UUID
+  amount: bigint
+  date: Date
+  name: string
+  merchant_name?: string | null
+  category: string
+  pending: boolean
+  payment_channel?: string | null
+}
 
 export const AccountCodec: Codec<Account> = {
   encode: (data: Account): object => ({
@@ -43,5 +54,38 @@ export const AccountCodec: Codec<Account> = {
           : null
         : undefined,
     is_active: encoded['is_active'],
+  }),
+}
+
+export const TransactionCodec: Codec<Transaction> = {
+  encode: (data: Transaction): object => ({
+    id: data.id.buffer,
+    account_id: data.account_id.buffer,
+    amount: data.amount,
+    date: data.date.getTime() / 1000,
+    name: data.name,
+    ...(data.merchant_name !== undefined && data.merchant_name !== null ? { merchant_name: data.merchant_name } : {}),
+    category: data.category,
+    pending: data.pending,
+    ...(data.payment_channel !== undefined && data.payment_channel !== null
+      ? { payment_channel: data.payment_channel }
+      : {}),
+  }),
+  decode: (encoded: any): Transaction => ({
+    id: new UUID(encoded['id']),
+    account_id: new UUID(encoded['account_id']),
+    amount: BigInt(encoded['amount']),
+    date: new Date(encoded['date'] * 1000),
+    name: encoded['name'],
+    merchant_name:
+      encoded['merchant_name'] !== undefined && encoded['merchant_name'] !== null
+        ? encoded['merchant_name']
+        : undefined,
+    category: encoded['category'],
+    pending: encoded['pending'],
+    payment_channel:
+      encoded['payment_channel'] !== undefined && encoded['payment_channel'] !== null
+        ? encoded['payment_channel']
+        : undefined,
   }),
 }

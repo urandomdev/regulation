@@ -45,5 +45,8 @@ func (s *Server) route() {
 
 		// All financial routes require authentication
 		financialGroup.Get("/accounts", auth.Handle, ro.WrapHandler3(handler.GetAccounts))
+		financialGroup.Post("/transactions", auth.Handle, ro.WrapHandler(handler.GetTransactions))
+		financialGroup.Post("/accounts/:id/transactions", auth.Handle, ro.WrapHandler(handler.GetAccountTransactions))
+		financialGroup.Post("/cashflow", auth.Handle, ro.WrapHandler(handler.GetCashflow))
 	}
 }
