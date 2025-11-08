@@ -27,5 +27,10 @@
     "vapid_private_key": "F8j-wtv33tmOwmlE2Z69KVOf5NMQtO4TlGtOMZ2ewes",
     "subscriber": "misile@duck.com"
   },
+  "cors": {
+    "allowed_origins": [
+      "http://localhost:5173"
+    ]
+  },
   "debug": true
 }

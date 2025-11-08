@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import CashflowCalendar from '../components/CashflowCalendar';
 import GoalsPreview from '../components/GoalsPreview';
 import RecentSaves from '../components/RecentSaves';
@@ -9,17 +10,30 @@ import './Dashboard.css';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <div className="dashboard-container">
       {/* Header */}
       <div className="dashboard-header">
-        <h1>Hello, Alex!</h1>
-        <button className="header-add-button" onClick={() => navigate('/rules')}>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
+        <div>
+          <h1>안녕하세요, {user?.nickname || 'User'}님!</h1>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button className="logout-button" onClick={handleLogout}>
+            로그아웃
+          </button>
+          <button className="header-add-button" onClick={() => navigate('/add-rule')}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Content */}

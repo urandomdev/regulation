@@ -3,11 +3,12 @@ import { API } from '@urandomdev/regulation';
 // Initialize API client
 const apiClient = new API(import.meta.env.VITE_API_URL || 'http://localhost:8080', {
   headers: {},
-  debug: import.meta.env.DEV,
+  debug: import.meta.env.DEV
 });
 
-// Export financial API
+// Export APIs
 export const financialApi = apiClient.financial;
+export const accountApi = apiClient.account;
 
 // Utility functions
 export const utils = {
