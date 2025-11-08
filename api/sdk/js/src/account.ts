@@ -18,8 +18,8 @@ export class AccountAPI {
   /**
    * Login authenticates a user and creates a session
    */
-  async login(params: LoginRequest): Promise<Result<void, 'internal_error'>> {
-    return this.client.request<LoginRequest, void, 'internal_error'>(
+  async login(params: LoginRequest): Promise<Result<void, 'internal_error' | 'invalid_credentials'>> {
+    return this.client.request<LoginRequest, void, 'internal_error' | 'invalid_credentials'>(
       'POST',
       '/account/login',
       params,
