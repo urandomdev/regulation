@@ -32,7 +32,7 @@ func (h *Handler) Login(ctx fiber.Ctx, req *LoginRequest) error {
 	}
 
 	// Verify password
-	valid, err := password.Verify(u.Password, []byte(req.Password))
+	valid, err := password.Verify([]byte(req.Password), u.Password)
 	if err != nil || !valid {
 		return protocol.ErrorResponse{
 			Code:    protocol.InvalidCredentialsError,

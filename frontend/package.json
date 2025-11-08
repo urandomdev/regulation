@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@deltalaboratory/uuid": "^0.3.3",
     "@urandomdev/regulation": "file:../api/sdk/js",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

@@ -1,4 +1,5 @@
 import { financialApi, utils } from '../api/client';
+import { UUID } from '@deltalaboratory/uuid';
 
 // Financial data service using real backend API
 class FinancialService {
@@ -20,13 +21,13 @@ class FinancialService {
       this.cache.accounts = response.accounts.map(account => ({
         id: account.id,
         name: account.name,
-        balance: utils.centsToDollars(account.currentBalance),
-        availableBalance: account.availableBalance
-          ? utils.centsToDollars(account.availableBalance)
+        balance: utils.centsToDollars(Number(account.current_balance)),
+        availableBalance: account.available_balance
+          ? utils.centsToDollars(Number(account.available_balance))
           : null,
         type: account.type,
         mask: account.mask,
-        isActive: account.isActive,
+        isActive: account.is_active,
       }));
       return this.cache.accounts;
     } catch (error) {
@@ -39,11 +40,11 @@ class FinancialService {
   async getTransactions(params = {}) {
     try {
       const [response, error] = await financialApi.getTransactions({
-        start: params.start,
-        end: params.end,
-        accountId: params.accountId,
-        limit: params.limit || 50,
-        offset: params.offset || 0,
+        start: params.start ? new Date(params.start) : null,
+        end: params.end ? new Date(params.end) : null,
+        account_id: params.accountId ? new UUID(params.accountId) : null,
+        limit: BigInt(params.limit || 50),
+        offset: BigInt(params.offset || 0),
       });
 
       if (error) {
@@ -52,20 +53,20 @@ class FinancialService {
 
       const transactions = response.transactions.map(t => ({
         id: t.id,
-        accountId: t.accountId,
+        accountId: t.account_id,
         date: t.date,
         name: t.name,
-        merchantName: t.merchantName,
+        merchantName: t.merchant_name,
         category: t.category,
-        amount: Math.abs(utils.centsToDollars(t.amount)),
+        amount: Math.abs(utils.centsToDollars(Number(t.amount))),
         isIncome: t.amount < 0, // Negative amount = income
         pending: t.pending,
-        paymentChannel: t.paymentChannel,
+        paymentChannel: t.payment_channel,
       }));
 
       this.cache.transactions = {
         data: transactions,
-        total: response.total,
+        total: Number(response.total),
       };
 
       return this.cache.transactions;
@@ -79,10 +80,10 @@ class FinancialService {
   async getAccountTransactions(accountId, params = {}) {
     try {
       const [response, error] = await financialApi.getAccountTransactions(accountId, {
-        start: params.start,
-        end: params.end,
-        limit: params.limit || 50,
-        offset: params.offset || 0,
+        start: params.start ? new Date(params.start) : null,
+        end: params.end ? new Date(params.end) : null,
+        limit: BigInt(params.limit || 50),
+        offset: BigInt(params.offset || 0),
       });
 
       if (error) {
@@ -92,17 +93,17 @@ class FinancialService {
       return {
         data: response.transactions.map(t => ({
           id: t.id,
-          accountId: t.accountId,
+          accountId: t.account_id,
           date: t.date,
           name: t.name,
-          merchantName: t.merchantName,
+          merchantName: t.merchant_name,
           category: t.category,
-          amount: Math.abs(utils.centsToDollars(t.amount)),
+          amount: Math.abs(utils.centsToDollars(Number(t.amount))),
           isIncome: t.amount < 0,
           pending: t.pending,
-          paymentChannel: t.paymentChannel,
+          paymentChannel: t.payment_channel,
         })),
-        total: response.total,
+        total: Number(response.total),
       };
     } catch (error) {
       console.error('Failed to fetch account transactions:', error);
@@ -113,16 +114,19 @@ class FinancialService {
   // Get cashflow data for date range
   async getCashflow(start, end) {
     try {
-      const [response, error] = await financialApi.getCashflow({ start, end });
+      const [response, error] = await financialApi.getCashflow({
+        start: start ? new Date(start) : null,
+        end: end ? new Date(end) : null
+      });
 
       if (error) {
         throw new Error(error.message || 'Failed to fetch cashflow');
       }
 
       this.cache.cashflow = {
-        income: utils.centsToDollars(response.total_income),
-        spend: utils.centsToDollars(response.total_spend),
-        net: utils.centsToDollars(response.net),
+        income: utils.centsToDollars(Number(response.total_income)),
+        spend: utils.centsToDollars(Number(response.total_spend)),
+        net: utils.centsToDollars(Number(response.net)),
         start: response.start,
         end: response.end,
       };
