@@ -1,11 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { recentTransactions } from '../data/store';
+import { financialService } from '../services/financialService';
 import './CalendarWidget.css';
 
 const CalendarWidget = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch transactions for the current month
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        // Get first and last day of the month
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        // Format dates as YYYY-MM-DD
+        const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+
+        // Fetch transactions for the month
+        const result = await financialService.getTransactions({
+          start: startDate,
+          end: endDate,
+          limit: 400, // Get all transactions for the month
+        });
+
+        // Transform transactions to match expected format
+        const transformedTransactions = result.data.map(t => ({
+          id: t.id,
+          date: t.date,
+          name: t.name || t.merchantName,
+          category: t.category || 'Uncategorized',
+          amount: t.isIncome ? -t.amount : t.amount, // Negative for income
+          autoSaved: 0, // TODO: Get auto-saved amount from rules engine
+        }));
+
+        setTransactions(transformedTransactions);
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err);
+        setError('Failed to load transactions. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [currentDate]);
 
   // Get calendar data for current month
   const getCalendarData = () => {
@@ -29,7 +78,7 @@ const CalendarWidget = () => {
     // Add actual days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayTransactions = recentTransactions.filter(t => t.date === dateStr);
+      const dayTransactions = transactions.filter(t => t.date === dateStr);
 
       const hasSpending = dayTransactions.some(t => t.amount > 0);
       const hasIncome = dayTransactions.some(t => t.amount < 0);
@@ -93,8 +142,52 @@ const CalendarWidget = () => {
       </div>
 
       <div className="widget-content">
-        {/* Month Navigation */}
-        <div className="calendar-header">
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            padding: '1rem',
+            marginBottom: '1rem',
+            backgroundColor: '#fee',
+            color: '#c33',
+            borderRadius: '8px',
+            border: '1px solid #fcc',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '400px',
+            gap: '1rem',
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #e0e0e0',
+              borderTop: '4px solid #4a90e2',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
+            <p style={{ color: '#666' }}>Loading transactions...</p>
+            <style>
+              {`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}
+            </style>
+          </div>
+        ) : (
+          <>
+            {/* Month Navigation */}
+            <div className="calendar-header">
           <button className="month-nav-button" onClick={previousMonth}>
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -192,15 +285,8 @@ const CalendarWidget = () => {
             <div className="summary-item">
               <div className="summary-label">Total Income</div>
               <div className="summary-value income-value">
-                ${recentTransactions
-                  .filter(t => {
-                    const tDate = new Date(t.date);
-                    return (
-                      t.amount < 0 &&
-                      tDate.getMonth() === currentDate.getMonth() &&
-                      tDate.getFullYear() === currentDate.getFullYear()
-                    );
-                  })
+                ${transactions
+                  .filter(t => t.amount < 0)
                   .reduce((sum, t) => sum + Math.abs(t.amount), 0)
                   .toFixed(2)}
               </div>
@@ -208,15 +294,8 @@ const CalendarWidget = () => {
             <div className="summary-item">
               <div className="summary-label">Total Spent</div>
               <div className="summary-value spend-value">
-                ${recentTransactions
-                  .filter(t => {
-                    const tDate = new Date(t.date);
-                    return (
-                      t.amount > 0 &&
-                      tDate.getMonth() === currentDate.getMonth() &&
-                      tDate.getFullYear() === currentDate.getFullYear()
-                    );
-                  })
+                ${transactions
+                  .filter(t => t.amount > 0)
                   .reduce((sum, t) => sum + t.amount, 0)
                   .toFixed(2)}
               </div>
@@ -224,20 +303,15 @@ const CalendarWidget = () => {
             <div className="summary-item">
               <div className="summary-label">Auto-Saved</div>
               <div className="summary-value saved-value">
-                ${recentTransactions
-                  .filter(t => {
-                    const tDate = new Date(t.date);
-                    return (
-                      tDate.getMonth() === currentDate.getMonth() &&
-                      tDate.getFullYear() === currentDate.getFullYear()
-                    );
-                  })
+                ${transactions
                   .reduce((sum, t) => sum + t.autoSaved, 0)
                   .toFixed(2)}
               </div>
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
