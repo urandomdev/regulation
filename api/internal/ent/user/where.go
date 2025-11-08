@@ -6,6 +6,7 @@ import (
 	"regulation/internal/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -62,6 +63,11 @@ func Email(v string) predicate.User {
 // Password applies equality check predicate on the "password" field. It's identical to PasswordEQ.
 func Password(v []byte) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldPassword, v))
+}
+
+// CustodyAccountID applies equality check predicate on the "custody_account_id" field. It's identical to CustodyAccountIDEQ.
+func CustodyAccountID(v uuid.UUID) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldCustodyAccountID, v))
 }
 
 // Nickname applies equality check predicate on the "nickname" field. It's identical to NicknameEQ.
@@ -174,6 +180,36 @@ func PasswordLTE(v []byte) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldPassword, v))
 }
 
+// CustodyAccountIDEQ applies the EQ predicate on the "custody_account_id" field.
+func CustodyAccountIDEQ(v uuid.UUID) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldCustodyAccountID, v))
+}
+
+// CustodyAccountIDNEQ applies the NEQ predicate on the "custody_account_id" field.
+func CustodyAccountIDNEQ(v uuid.UUID) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldCustodyAccountID, v))
+}
+
+// CustodyAccountIDIn applies the In predicate on the "custody_account_id" field.
+func CustodyAccountIDIn(vs ...uuid.UUID) predicate.User {
+	return predicate.User(sql.FieldIn(FieldCustodyAccountID, vs...))
+}
+
+// CustodyAccountIDNotIn applies the NotIn predicate on the "custody_account_id" field.
+func CustodyAccountIDNotIn(vs ...uuid.UUID) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldCustodyAccountID, vs...))
+}
+
+// CustodyAccountIDIsNil applies the IsNil predicate on the "custody_account_id" field.
+func CustodyAccountIDIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldCustodyAccountID))
+}
+
+// CustodyAccountIDNotNil applies the NotNil predicate on the "custody_account_id" field.
+func CustodyAccountIDNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldCustodyAccountID))
+}
+
 // NicknameEQ applies the EQ predicate on the "nickname" field.
 func NicknameEQ(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldNickname, v))
@@ -237,6 +273,75 @@ func NicknameEqualFold(v string) predicate.User {
 // NicknameContainsFold applies the ContainsFold predicate on the "nickname" field.
 func NicknameContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldNickname, v))
+}
+
+// HasAccounts applies the HasEdge predicate on the "accounts" edge.
+func HasAccounts() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AccountsTable, AccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAccountsWith applies the HasEdge predicate on the "accounts" edge with a given conditions (other predicates).
+func HasAccountsWith(preds ...predicate.VirtualAccount) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, UserTable, UserColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newUserStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustodyAccount applies the HasEdge predicate on the "custody_account" edge.
+func HasCustodyAccount() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CustodyAccountTable, CustodyAccountColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustodyAccountWith applies the HasEdge predicate on the "custody_account" edge with a given conditions (other predicates).
+func HasCustodyAccountWith(preds ...predicate.User) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCustodyAccountStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

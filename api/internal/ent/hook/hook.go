@@ -20,6 +20,30 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
+// The VirtualAccountFunc type is an adapter to allow the use of ordinary
+// function as VirtualAccount mutator.
+type VirtualAccountFunc func(context.Context, *ent.VirtualAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f VirtualAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.VirtualAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.VirtualAccountMutation", m)
+}
+
+// The VirtualAccountTransactionFunc type is an adapter to allow the use of ordinary
+// function as VirtualAccountTransaction mutator.
+type VirtualAccountTransactionFunc func(context.Context, *ent.VirtualAccountTransactionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f VirtualAccountTransactionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.VirtualAccountTransactionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.VirtualAccountTransactionMutation", m)
+}
+
 // Condition is a hook condition function.
 type Condition func(context.Context, ent.Mutation) bool
 

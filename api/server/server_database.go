@@ -60,7 +60,7 @@ func (s *Server) setupDatabase(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	if err := atlasutil.Migrate(ctx, s.config.DB.URI(), "20250419025418"); err != nil {
+	if err := atlasutil.Migrate(ctx, s.config.DB.URI(), ""); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 

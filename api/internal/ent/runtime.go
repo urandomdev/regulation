@@ -5,6 +5,8 @@ package ent
 import (
 	"regulation/internal/ent/schema"
 	"regulation/internal/ent/user"
+	"regulation/internal/ent/virtualaccount"
+	"regulation/internal/ent/virtualaccounttransaction"
 
 	"github.com/google/uuid"
 )
@@ -19,4 +21,20 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	virtualaccountFields := schema.VirtualAccount{}.Fields()
+	_ = virtualaccountFields
+	// virtualaccountDescName is the schema descriptor for name field.
+	virtualaccountDescName := virtualaccountFields[2].Descriptor()
+	// virtualaccount.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	virtualaccount.NameValidator = virtualaccountDescName.Validators[0].(func(string) error)
+	// virtualaccountDescID is the schema descriptor for id field.
+	virtualaccountDescID := virtualaccountFields[0].Descriptor()
+	// virtualaccount.DefaultID holds the default value on creation for the id field.
+	virtualaccount.DefaultID = virtualaccountDescID.Default.(func() uuid.UUID)
+	virtualaccounttransactionFields := schema.VirtualAccountTransaction{}.Fields()
+	_ = virtualaccounttransactionFields
+	// virtualaccounttransactionDescID is the schema descriptor for id field.
+	virtualaccounttransactionDescID := virtualaccounttransactionFields[0].Descriptor()
+	// virtualaccounttransaction.DefaultID holds the default value on creation for the id field.
+	virtualaccounttransaction.DefaultID = virtualaccounttransactionDescID.Default.(func() uuid.UUID)
 }

@@ -12,10 +12,13 @@ import (
 	"regulation/internal/ent/migrate"
 
 	"regulation/internal/ent/user"
+	"regulation/internal/ent/virtualaccount"
+	"regulation/internal/ent/virtualaccounttransaction"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 
 	stdsql "database/sql"
@@ -28,6 +31,10 @@ type Client struct {
 	Schema *migrate.Schema
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// VirtualAccount is the client for interacting with the VirtualAccount builders.
+	VirtualAccount *VirtualAccountClient
+	// VirtualAccountTransaction is the client for interacting with the VirtualAccountTransaction builders.
+	VirtualAccountTransaction *VirtualAccountTransactionClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -40,6 +47,8 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.User = NewUserClient(c.config)
+	c.VirtualAccount = NewVirtualAccountClient(c.config)
+	c.VirtualAccountTransaction = NewVirtualAccountTransactionClient(c.config)
 }
 
 type (
@@ -130,9 +139,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		User:   NewUserClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		User:                      NewUserClient(cfg),
+		VirtualAccount:            NewVirtualAccountClient(cfg),
+		VirtualAccountTransaction: NewVirtualAccountTransactionClient(cfg),
 	}, nil
 }
 
@@ -150,9 +161,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		User:   NewUserClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		User:                      NewUserClient(cfg),
+		VirtualAccount:            NewVirtualAccountClient(cfg),
+		VirtualAccountTransaction: NewVirtualAccountTransactionClient(cfg),
 	}, nil
 }
 
@@ -182,12 +195,16 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.User.Use(hooks...)
+	c.VirtualAccount.Use(hooks...)
+	c.VirtualAccountTransaction.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.User.Intercept(interceptors...)
+	c.VirtualAccount.Intercept(interceptors...)
+	c.VirtualAccountTransaction.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -195,6 +212,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *VirtualAccountMutation:
+		return c.VirtualAccount.mutate(ctx, m)
+	case *VirtualAccountTransactionMutation:
+		return c.VirtualAccountTransaction.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -308,6 +329,54 @@ func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	return obj
 }
 
+// QueryAccounts queries the accounts edge of a User.
+func (c *UserClient) QueryAccounts(_m *User) *VirtualAccountQuery {
+	query := (&VirtualAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(virtualaccount.Table, virtualaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.AccountsTable, user.AccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a User.
+func (c *UserClient) QueryUser(_m *User) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, user.UserTable, user.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustodyAccount queries the custody_account edge of a User.
+func (c *UserClient) QueryCustodyAccount(_m *User) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, user.CustodyAccountTable, user.CustodyAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -333,13 +402,327 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// VirtualAccountClient is a client for the VirtualAccount schema.
+type VirtualAccountClient struct {
+	config
+}
+
+// NewVirtualAccountClient returns a client for the VirtualAccount from the given config.
+func NewVirtualAccountClient(c config) *VirtualAccountClient {
+	return &VirtualAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `virtualaccount.Hooks(f(g(h())))`.
+func (c *VirtualAccountClient) Use(hooks ...Hook) {
+	c.hooks.VirtualAccount = append(c.hooks.VirtualAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `virtualaccount.Intercept(f(g(h())))`.
+func (c *VirtualAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.VirtualAccount = append(c.inters.VirtualAccount, interceptors...)
+}
+
+// Create returns a builder for creating a VirtualAccount entity.
+func (c *VirtualAccountClient) Create() *VirtualAccountCreate {
+	mutation := newVirtualAccountMutation(c.config, OpCreate)
+	return &VirtualAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of VirtualAccount entities.
+func (c *VirtualAccountClient) CreateBulk(builders ...*VirtualAccountCreate) *VirtualAccountCreateBulk {
+	return &VirtualAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *VirtualAccountClient) MapCreateBulk(slice any, setFunc func(*VirtualAccountCreate, int)) *VirtualAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &VirtualAccountCreateBulk{err: fmt.Errorf("calling to VirtualAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*VirtualAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &VirtualAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for VirtualAccount.
+func (c *VirtualAccountClient) Update() *VirtualAccountUpdate {
+	mutation := newVirtualAccountMutation(c.config, OpUpdate)
+	return &VirtualAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *VirtualAccountClient) UpdateOne(_m *VirtualAccount) *VirtualAccountUpdateOne {
+	mutation := newVirtualAccountMutation(c.config, OpUpdateOne, withVirtualAccount(_m))
+	return &VirtualAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *VirtualAccountClient) UpdateOneID(id uuid.UUID) *VirtualAccountUpdateOne {
+	mutation := newVirtualAccountMutation(c.config, OpUpdateOne, withVirtualAccountID(id))
+	return &VirtualAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for VirtualAccount.
+func (c *VirtualAccountClient) Delete() *VirtualAccountDelete {
+	mutation := newVirtualAccountMutation(c.config, OpDelete)
+	return &VirtualAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *VirtualAccountClient) DeleteOne(_m *VirtualAccount) *VirtualAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *VirtualAccountClient) DeleteOneID(id uuid.UUID) *VirtualAccountDeleteOne {
+	builder := c.Delete().Where(virtualaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &VirtualAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for VirtualAccount.
+func (c *VirtualAccountClient) Query() *VirtualAccountQuery {
+	return &VirtualAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeVirtualAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a VirtualAccount entity by its id.
+func (c *VirtualAccountClient) Get(ctx context.Context, id uuid.UUID) (*VirtualAccount, error) {
+	return c.Query().Where(virtualaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *VirtualAccountClient) GetX(ctx context.Context, id uuid.UUID) *VirtualAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTransactions queries the transactions edge of a VirtualAccount.
+func (c *VirtualAccountClient) QueryTransactions(_m *VirtualAccount) *VirtualAccountTransactionQuery {
+	query := (&VirtualAccountTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(virtualaccount.Table, virtualaccount.FieldID, id),
+			sqlgraph.To(virtualaccounttransaction.Table, virtualaccounttransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, virtualaccount.TransactionsTable, virtualaccount.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a VirtualAccount.
+func (c *VirtualAccountClient) QueryUser(_m *VirtualAccount) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(virtualaccount.Table, virtualaccount.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, virtualaccount.UserTable, virtualaccount.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *VirtualAccountClient) Hooks() []Hook {
+	return c.hooks.VirtualAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *VirtualAccountClient) Interceptors() []Interceptor {
+	return c.inters.VirtualAccount
+}
+
+func (c *VirtualAccountClient) mutate(ctx context.Context, m *VirtualAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&VirtualAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&VirtualAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&VirtualAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&VirtualAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown VirtualAccount mutation op: %q", m.Op())
+	}
+}
+
+// VirtualAccountTransactionClient is a client for the VirtualAccountTransaction schema.
+type VirtualAccountTransactionClient struct {
+	config
+}
+
+// NewVirtualAccountTransactionClient returns a client for the VirtualAccountTransaction from the given config.
+func NewVirtualAccountTransactionClient(c config) *VirtualAccountTransactionClient {
+	return &VirtualAccountTransactionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `virtualaccounttransaction.Hooks(f(g(h())))`.
+func (c *VirtualAccountTransactionClient) Use(hooks ...Hook) {
+	c.hooks.VirtualAccountTransaction = append(c.hooks.VirtualAccountTransaction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `virtualaccounttransaction.Intercept(f(g(h())))`.
+func (c *VirtualAccountTransactionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.VirtualAccountTransaction = append(c.inters.VirtualAccountTransaction, interceptors...)
+}
+
+// Create returns a builder for creating a VirtualAccountTransaction entity.
+func (c *VirtualAccountTransactionClient) Create() *VirtualAccountTransactionCreate {
+	mutation := newVirtualAccountTransactionMutation(c.config, OpCreate)
+	return &VirtualAccountTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of VirtualAccountTransaction entities.
+func (c *VirtualAccountTransactionClient) CreateBulk(builders ...*VirtualAccountTransactionCreate) *VirtualAccountTransactionCreateBulk {
+	return &VirtualAccountTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *VirtualAccountTransactionClient) MapCreateBulk(slice any, setFunc func(*VirtualAccountTransactionCreate, int)) *VirtualAccountTransactionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &VirtualAccountTransactionCreateBulk{err: fmt.Errorf("calling to VirtualAccountTransactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*VirtualAccountTransactionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &VirtualAccountTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for VirtualAccountTransaction.
+func (c *VirtualAccountTransactionClient) Update() *VirtualAccountTransactionUpdate {
+	mutation := newVirtualAccountTransactionMutation(c.config, OpUpdate)
+	return &VirtualAccountTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *VirtualAccountTransactionClient) UpdateOne(_m *VirtualAccountTransaction) *VirtualAccountTransactionUpdateOne {
+	mutation := newVirtualAccountTransactionMutation(c.config, OpUpdateOne, withVirtualAccountTransaction(_m))
+	return &VirtualAccountTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *VirtualAccountTransactionClient) UpdateOneID(id uuid.UUID) *VirtualAccountTransactionUpdateOne {
+	mutation := newVirtualAccountTransactionMutation(c.config, OpUpdateOne, withVirtualAccountTransactionID(id))
+	return &VirtualAccountTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for VirtualAccountTransaction.
+func (c *VirtualAccountTransactionClient) Delete() *VirtualAccountTransactionDelete {
+	mutation := newVirtualAccountTransactionMutation(c.config, OpDelete)
+	return &VirtualAccountTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *VirtualAccountTransactionClient) DeleteOne(_m *VirtualAccountTransaction) *VirtualAccountTransactionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *VirtualAccountTransactionClient) DeleteOneID(id uuid.UUID) *VirtualAccountTransactionDeleteOne {
+	builder := c.Delete().Where(virtualaccounttransaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &VirtualAccountTransactionDeleteOne{builder}
+}
+
+// Query returns a query builder for VirtualAccountTransaction.
+func (c *VirtualAccountTransactionClient) Query() *VirtualAccountTransactionQuery {
+	return &VirtualAccountTransactionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeVirtualAccountTransaction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a VirtualAccountTransaction entity by its id.
+func (c *VirtualAccountTransactionClient) Get(ctx context.Context, id uuid.UUID) (*VirtualAccountTransaction, error) {
+	return c.Query().Where(virtualaccounttransaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *VirtualAccountTransactionClient) GetX(ctx context.Context, id uuid.UUID) *VirtualAccountTransaction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryVirtualAccount queries the virtual_account edge of a VirtualAccountTransaction.
+func (c *VirtualAccountTransactionClient) QueryVirtualAccount(_m *VirtualAccountTransaction) *VirtualAccountQuery {
+	query := (&VirtualAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(virtualaccounttransaction.Table, virtualaccounttransaction.FieldID, id),
+			sqlgraph.To(virtualaccount.Table, virtualaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, virtualaccounttransaction.VirtualAccountTable, virtualaccounttransaction.VirtualAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *VirtualAccountTransactionClient) Hooks() []Hook {
+	return c.hooks.VirtualAccountTransaction
+}
+
+// Interceptors returns the client interceptors.
+func (c *VirtualAccountTransactionClient) Interceptors() []Interceptor {
+	return c.inters.VirtualAccountTransaction
+}
+
+func (c *VirtualAccountTransactionClient) mutate(ctx context.Context, m *VirtualAccountTransactionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&VirtualAccountTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&VirtualAccountTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&VirtualAccountTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&VirtualAccountTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown VirtualAccountTransaction mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		User []ent.Hook
+		User, VirtualAccount, VirtualAccountTransaction []ent.Hook
 	}
 	inters struct {
-		User []ent.Interceptor
+		User, VirtualAccount, VirtualAccountTransaction []ent.Interceptor
 	}
 )
 

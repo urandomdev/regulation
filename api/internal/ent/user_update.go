@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"regulation/internal/ent/predicate"
 	"regulation/internal/ent/user"
+	"regulation/internal/ent/virtualaccount"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -48,6 +50,26 @@ func (_u *UserUpdate) SetPassword(v []byte) *UserUpdate {
 	return _u
 }
 
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (_u *UserUpdate) SetCustodyAccountID(v uuid.UUID) *UserUpdate {
+	_u.mutation.SetCustodyAccountID(v)
+	return _u
+}
+
+// SetNillableCustodyAccountID sets the "custody_account_id" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableCustodyAccountID(v *uuid.UUID) *UserUpdate {
+	if v != nil {
+		_u.SetCustodyAccountID(*v)
+	}
+	return _u
+}
+
+// ClearCustodyAccountID clears the value of the "custody_account_id" field.
+func (_u *UserUpdate) ClearCustodyAccountID() *UserUpdate {
+	_u.mutation.ClearCustodyAccountID()
+	return _u
+}
+
 // SetNickname sets the "nickname" field.
 func (_u *UserUpdate) SetNickname(v string) *UserUpdate {
 	_u.mutation.SetNickname(v)
@@ -62,9 +84,92 @@ func (_u *UserUpdate) SetNillableNickname(v *string) *UserUpdate {
 	return _u
 }
 
+// AddAccountIDs adds the "accounts" edge to the VirtualAccount entity by IDs.
+func (_u *UserUpdate) AddAccountIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddAccountIDs(ids...)
+	return _u
+}
+
+// AddAccounts adds the "accounts" edges to the VirtualAccount entity.
+func (_u *UserUpdate) AddAccounts(v ...*VirtualAccount) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAccountIDs(ids...)
+}
+
+// AddUserIDs adds the "user" edge to the User entity by IDs.
+func (_u *UserUpdate) AddUserIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddUserIDs(ids...)
+	return _u
+}
+
+// AddUser adds the "user" edges to the User entity.
+func (_u *UserUpdate) AddUser(v ...*User) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUserIDs(ids...)
+}
+
+// SetCustodyAccount sets the "custody_account" edge to the User entity.
+func (_u *UserUpdate) SetCustodyAccount(v *User) *UserUpdate {
+	return _u.SetCustodyAccountID(v.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearAccounts clears all "accounts" edges to the VirtualAccount entity.
+func (_u *UserUpdate) ClearAccounts() *UserUpdate {
+	_u.mutation.ClearAccounts()
+	return _u
+}
+
+// RemoveAccountIDs removes the "accounts" edge to VirtualAccount entities by IDs.
+func (_u *UserUpdate) RemoveAccountIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveAccountIDs(ids...)
+	return _u
+}
+
+// RemoveAccounts removes "accounts" edges to VirtualAccount entities.
+func (_u *UserUpdate) RemoveAccounts(v ...*VirtualAccount) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAccountIDs(ids...)
+}
+
+// ClearUser clears all "user" edges to the User entity.
+func (_u *UserUpdate) ClearUser() *UserUpdate {
+	_u.mutation.ClearUser()
+	return _u
+}
+
+// RemoveUserIDs removes the "user" edge to User entities by IDs.
+func (_u *UserUpdate) RemoveUserIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveUserIDs(ids...)
+	return _u
+}
+
+// RemoveUser removes "user" edges to User entities.
+func (_u *UserUpdate) RemoveUser(v ...*User) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUserIDs(ids...)
+}
+
+// ClearCustodyAccount clears the "custody_account" edge to the User entity.
+func (_u *UserUpdate) ClearCustodyAccount() *UserUpdate {
+	_u.mutation.ClearCustodyAccount()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -118,6 +223,125 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Nickname(); ok {
 		_spec.SetField(user.FieldNickname, field.TypeString, value)
 	}
+	if _u.mutation.AccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAccountsIDs(); len(nodes) > 0 && !_u.mutation.AccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUserIDs(); len(nodes) > 0 && !_u.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CustodyAccountCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.CustodyAccountTable,
+			Columns: []string{user.CustodyAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustodyAccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.CustodyAccountTable,
+			Columns: []string{user.CustodyAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -160,6 +384,26 @@ func (_u *UserUpdateOne) SetPassword(v []byte) *UserUpdateOne {
 	return _u
 }
 
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (_u *UserUpdateOne) SetCustodyAccountID(v uuid.UUID) *UserUpdateOne {
+	_u.mutation.SetCustodyAccountID(v)
+	return _u
+}
+
+// SetNillableCustodyAccountID sets the "custody_account_id" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableCustodyAccountID(v *uuid.UUID) *UserUpdateOne {
+	if v != nil {
+		_u.SetCustodyAccountID(*v)
+	}
+	return _u
+}
+
+// ClearCustodyAccountID clears the value of the "custody_account_id" field.
+func (_u *UserUpdateOne) ClearCustodyAccountID() *UserUpdateOne {
+	_u.mutation.ClearCustodyAccountID()
+	return _u
+}
+
 // SetNickname sets the "nickname" field.
 func (_u *UserUpdateOne) SetNickname(v string) *UserUpdateOne {
 	_u.mutation.SetNickname(v)
@@ -174,9 +418,92 @@ func (_u *UserUpdateOne) SetNillableNickname(v *string) *UserUpdateOne {
 	return _u
 }
 
+// AddAccountIDs adds the "accounts" edge to the VirtualAccount entity by IDs.
+func (_u *UserUpdateOne) AddAccountIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddAccountIDs(ids...)
+	return _u
+}
+
+// AddAccounts adds the "accounts" edges to the VirtualAccount entity.
+func (_u *UserUpdateOne) AddAccounts(v ...*VirtualAccount) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAccountIDs(ids...)
+}
+
+// AddUserIDs adds the "user" edge to the User entity by IDs.
+func (_u *UserUpdateOne) AddUserIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddUserIDs(ids...)
+	return _u
+}
+
+// AddUser adds the "user" edges to the User entity.
+func (_u *UserUpdateOne) AddUser(v ...*User) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUserIDs(ids...)
+}
+
+// SetCustodyAccount sets the "custody_account" edge to the User entity.
+func (_u *UserUpdateOne) SetCustodyAccount(v *User) *UserUpdateOne {
+	return _u.SetCustodyAccountID(v.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearAccounts clears all "accounts" edges to the VirtualAccount entity.
+func (_u *UserUpdateOne) ClearAccounts() *UserUpdateOne {
+	_u.mutation.ClearAccounts()
+	return _u
+}
+
+// RemoveAccountIDs removes the "accounts" edge to VirtualAccount entities by IDs.
+func (_u *UserUpdateOne) RemoveAccountIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveAccountIDs(ids...)
+	return _u
+}
+
+// RemoveAccounts removes "accounts" edges to VirtualAccount entities.
+func (_u *UserUpdateOne) RemoveAccounts(v ...*VirtualAccount) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAccountIDs(ids...)
+}
+
+// ClearUser clears all "user" edges to the User entity.
+func (_u *UserUpdateOne) ClearUser() *UserUpdateOne {
+	_u.mutation.ClearUser()
+	return _u
+}
+
+// RemoveUserIDs removes the "user" edge to User entities by IDs.
+func (_u *UserUpdateOne) RemoveUserIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveUserIDs(ids...)
+	return _u
+}
+
+// RemoveUser removes "user" edges to User entities.
+func (_u *UserUpdateOne) RemoveUser(v ...*User) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUserIDs(ids...)
+}
+
+// ClearCustodyAccount clears the "custody_account" edge to the User entity.
+func (_u *UserUpdateOne) ClearCustodyAccount() *UserUpdateOne {
+	_u.mutation.ClearCustodyAccount()
+	return _u
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -259,6 +586,125 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.Nickname(); ok {
 		_spec.SetField(user.FieldNickname, field.TypeString, value)
+	}
+	if _u.mutation.AccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAccountsIDs(); len(nodes) > 0 && !_u.mutation.AccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUserIDs(); len(nodes) > 0 && !_u.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CustodyAccountCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.CustodyAccountTable,
+			Columns: []string{user.CustodyAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustodyAccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.CustodyAccountTable,
+			Columns: []string{user.CustodyAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_spec.AddModifiers(_u.modifiers...)
 	_node = &User{config: _u.config}

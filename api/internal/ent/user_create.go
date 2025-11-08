@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regulation/internal/ent/user"
+	"regulation/internal/ent/virtualaccount"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -35,6 +36,20 @@ func (_c *UserCreate) SetPassword(v []byte) *UserCreate {
 	return _c
 }
 
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (_c *UserCreate) SetCustodyAccountID(v uuid.UUID) *UserCreate {
+	_c.mutation.SetCustodyAccountID(v)
+	return _c
+}
+
+// SetNillableCustodyAccountID sets the "custody_account_id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableCustodyAccountID(v *uuid.UUID) *UserCreate {
+	if v != nil {
+		_c.SetCustodyAccountID(*v)
+	}
+	return _c
+}
+
 // SetNickname sets the "nickname" field.
 func (_c *UserCreate) SetNickname(v string) *UserCreate {
 	_c.mutation.SetNickname(v)
@@ -53,6 +68,41 @@ func (_c *UserCreate) SetNillableID(v *uuid.UUID) *UserCreate {
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// AddAccountIDs adds the "accounts" edge to the VirtualAccount entity by IDs.
+func (_c *UserCreate) AddAccountIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddAccountIDs(ids...)
+	return _c
+}
+
+// AddAccounts adds the "accounts" edges to the VirtualAccount entity.
+func (_c *UserCreate) AddAccounts(v ...*VirtualAccount) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAccountIDs(ids...)
+}
+
+// AddUserIDs adds the "user" edge to the User entity by IDs.
+func (_c *UserCreate) AddUserIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddUserIDs(ids...)
+	return _c
+}
+
+// AddUser adds the "user" edges to the User entity.
+func (_c *UserCreate) AddUser(v ...*User) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUserIDs(ids...)
+}
+
+// SetCustodyAccount sets the "custody_account" edge to the User entity.
+func (_c *UserCreate) SetCustodyAccount(v *User) *UserCreate {
+	return _c.SetCustodyAccountID(v.ID)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -155,6 +205,55 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldNickname, field.TypeString, value)
 		_node.Nickname = value
 	}
+	if nodes := _c.mutation.AccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AccountsTable,
+			Columns: []string{user.AccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(virtualaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.UserTable,
+			Columns: []string{user.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustodyAccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.CustodyAccountTable,
+			Columns: []string{user.CustodyAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustodyAccountID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -228,6 +327,24 @@ func (u *UserUpsert) SetPassword(v []byte) *UserUpsert {
 // UpdatePassword sets the "password" field to the value that was provided on create.
 func (u *UserUpsert) UpdatePassword() *UserUpsert {
 	u.SetExcluded(user.FieldPassword)
+	return u
+}
+
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (u *UserUpsert) SetCustodyAccountID(v uuid.UUID) *UserUpsert {
+	u.Set(user.FieldCustodyAccountID, v)
+	return u
+}
+
+// UpdateCustodyAccountID sets the "custody_account_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateCustodyAccountID() *UserUpsert {
+	u.SetExcluded(user.FieldCustodyAccountID)
+	return u
+}
+
+// ClearCustodyAccountID clears the value of the "custody_account_id" field.
+func (u *UserUpsert) ClearCustodyAccountID() *UserUpsert {
+	u.SetNull(user.FieldCustodyAccountID)
 	return u
 }
 
@@ -316,6 +433,27 @@ func (u *UserUpsertOne) SetPassword(v []byte) *UserUpsertOne {
 func (u *UserUpsertOne) UpdatePassword() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdatePassword()
+	})
+}
+
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (u *UserUpsertOne) SetCustodyAccountID(v uuid.UUID) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetCustodyAccountID(v)
+	})
+}
+
+// UpdateCustodyAccountID sets the "custody_account_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateCustodyAccountID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateCustodyAccountID()
+	})
+}
+
+// ClearCustodyAccountID clears the value of the "custody_account_id" field.
+func (u *UserUpsertOne) ClearCustodyAccountID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearCustodyAccountID()
 	})
 }
 
@@ -573,6 +711,27 @@ func (u *UserUpsertBulk) SetPassword(v []byte) *UserUpsertBulk {
 func (u *UserUpsertBulk) UpdatePassword() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdatePassword()
+	})
+}
+
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (u *UserUpsertBulk) SetCustodyAccountID(v uuid.UUID) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetCustodyAccountID(v)
+	})
+}
+
+// UpdateCustodyAccountID sets the "custody_account_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateCustodyAccountID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateCustodyAccountID()
+	})
+}
+
+// ClearCustodyAccountID clears the value of the "custody_account_id" field.
+func (u *UserUpsertBulk) ClearCustodyAccountID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearCustodyAccountID()
 	})
 }
 

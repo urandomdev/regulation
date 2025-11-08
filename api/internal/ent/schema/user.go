@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -19,11 +20,19 @@ func (User) Fields() []ent.Field {
 		field.String("email").Unique(),
 		field.Bytes("password").Sensitive(),
 
+		field.UUID("custody_account_id", uuid.Nil).Optional().Nillable(),
+
 		field.String("nickname"),
 	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("accounts", VirtualAccount.Type),
+		edge.To("custody_account", User.Type).
+			Field("custody_account_id").
+			Unique().
+			From("user"),
+	}
 }

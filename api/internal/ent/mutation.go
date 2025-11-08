@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"regulation/internal/ent/predicate"
 	"regulation/internal/ent/user"
+	"regulation/internal/ent/virtualaccount"
+	"regulation/internal/ent/virtualaccounttransaction"
 	"sync"
 
 	"entgo.io/ent"
@@ -24,22 +26,32 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeUser = "User"
+	TypeUser                      = "User"
+	TypeVirtualAccount            = "VirtualAccount"
+	TypeVirtualAccountTransaction = "VirtualAccountTransaction"
 )
 
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	email         *string
-	password      *[]byte
-	nickname      *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*User, error)
-	predicates    []predicate.User
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	email                  *string
+	password               *[]byte
+	nickname               *string
+	clearedFields          map[string]struct{}
+	accounts               map[uuid.UUID]struct{}
+	removedaccounts        map[uuid.UUID]struct{}
+	clearedaccounts        bool
+	user                   map[uuid.UUID]struct{}
+	removeduser            map[uuid.UUID]struct{}
+	cleareduser            bool
+	custody_account        *uuid.UUID
+	clearedcustody_account bool
+	done                   bool
+	oldValue               func(context.Context) (*User, error)
+	predicates             []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -218,6 +230,55 @@ func (m *UserMutation) ResetPassword() {
 	m.password = nil
 }
 
+// SetCustodyAccountID sets the "custody_account_id" field.
+func (m *UserMutation) SetCustodyAccountID(u uuid.UUID) {
+	m.custody_account = &u
+}
+
+// CustodyAccountID returns the value of the "custody_account_id" field in the mutation.
+func (m *UserMutation) CustodyAccountID() (r uuid.UUID, exists bool) {
+	v := m.custody_account
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustodyAccountID returns the old "custody_account_id" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldCustodyAccountID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustodyAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustodyAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustodyAccountID: %w", err)
+	}
+	return oldValue.CustodyAccountID, nil
+}
+
+// ClearCustodyAccountID clears the value of the "custody_account_id" field.
+func (m *UserMutation) ClearCustodyAccountID() {
+	m.custody_account = nil
+	m.clearedFields[user.FieldCustodyAccountID] = struct{}{}
+}
+
+// CustodyAccountIDCleared returns if the "custody_account_id" field was cleared in this mutation.
+func (m *UserMutation) CustodyAccountIDCleared() bool {
+	_, ok := m.clearedFields[user.FieldCustodyAccountID]
+	return ok
+}
+
+// ResetCustodyAccountID resets all changes to the "custody_account_id" field.
+func (m *UserMutation) ResetCustodyAccountID() {
+	m.custody_account = nil
+	delete(m.clearedFields, user.FieldCustodyAccountID)
+}
+
 // SetNickname sets the "nickname" field.
 func (m *UserMutation) SetNickname(s string) {
 	m.nickname = &s
@@ -254,6 +315,141 @@ func (m *UserMutation) ResetNickname() {
 	m.nickname = nil
 }
 
+// AddAccountIDs adds the "accounts" edge to the VirtualAccount entity by ids.
+func (m *UserMutation) AddAccountIDs(ids ...uuid.UUID) {
+	if m.accounts == nil {
+		m.accounts = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.accounts[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAccounts clears the "accounts" edge to the VirtualAccount entity.
+func (m *UserMutation) ClearAccounts() {
+	m.clearedaccounts = true
+}
+
+// AccountsCleared reports if the "accounts" edge to the VirtualAccount entity was cleared.
+func (m *UserMutation) AccountsCleared() bool {
+	return m.clearedaccounts
+}
+
+// RemoveAccountIDs removes the "accounts" edge to the VirtualAccount entity by IDs.
+func (m *UserMutation) RemoveAccountIDs(ids ...uuid.UUID) {
+	if m.removedaccounts == nil {
+		m.removedaccounts = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.accounts, ids[i])
+		m.removedaccounts[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAccounts returns the removed IDs of the "accounts" edge to the VirtualAccount entity.
+func (m *UserMutation) RemovedAccountsIDs() (ids []uuid.UUID) {
+	for id := range m.removedaccounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AccountsIDs returns the "accounts" edge IDs in the mutation.
+func (m *UserMutation) AccountsIDs() (ids []uuid.UUID) {
+	for id := range m.accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAccounts resets all changes to the "accounts" edge.
+func (m *UserMutation) ResetAccounts() {
+	m.accounts = nil
+	m.clearedaccounts = false
+	m.removedaccounts = nil
+}
+
+// AddUserIDs adds the "user" edge to the User entity by ids.
+func (m *UserMutation) AddUserIDs(ids ...uuid.UUID) {
+	if m.user == nil {
+		m.user = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.user[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *UserMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *UserMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// RemoveUserIDs removes the "user" edge to the User entity by IDs.
+func (m *UserMutation) RemoveUserIDs(ids ...uuid.UUID) {
+	if m.removeduser == nil {
+		m.removeduser = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.user, ids[i])
+		m.removeduser[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUser returns the removed IDs of the "user" edge to the User entity.
+func (m *UserMutation) RemovedUserIDs() (ids []uuid.UUID) {
+	for id := range m.removeduser {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+func (m *UserMutation) UserIDs() (ids []uuid.UUID) {
+	for id := range m.user {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *UserMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+	m.removeduser = nil
+}
+
+// ClearCustodyAccount clears the "custody_account" edge to the User entity.
+func (m *UserMutation) ClearCustodyAccount() {
+	m.clearedcustody_account = true
+	m.clearedFields[user.FieldCustodyAccountID] = struct{}{}
+}
+
+// CustodyAccountCleared reports if the "custody_account" edge to the User entity was cleared.
+func (m *UserMutation) CustodyAccountCleared() bool {
+	return m.CustodyAccountIDCleared() || m.clearedcustody_account
+}
+
+// CustodyAccountIDs returns the "custody_account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustodyAccountID instead. It exists only for internal usage by the builders.
+func (m *UserMutation) CustodyAccountIDs() (ids []uuid.UUID) {
+	if id := m.custody_account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustodyAccount resets all changes to the "custody_account" edge.
+func (m *UserMutation) ResetCustodyAccount() {
+	m.custody_account = nil
+	m.clearedcustody_account = false
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -288,12 +484,15 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.email != nil {
 		fields = append(fields, user.FieldEmail)
 	}
 	if m.password != nil {
 		fields = append(fields, user.FieldPassword)
+	}
+	if m.custody_account != nil {
+		fields = append(fields, user.FieldCustodyAccountID)
 	}
 	if m.nickname != nil {
 		fields = append(fields, user.FieldNickname)
@@ -310,6 +509,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Email()
 	case user.FieldPassword:
 		return m.Password()
+	case user.FieldCustodyAccountID:
+		return m.CustodyAccountID()
 	case user.FieldNickname:
 		return m.Nickname()
 	}
@@ -325,6 +526,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmail(ctx)
 	case user.FieldPassword:
 		return m.OldPassword(ctx)
+	case user.FieldCustodyAccountID:
+		return m.OldCustodyAccountID(ctx)
 	case user.FieldNickname:
 		return m.OldNickname(ctx)
 	}
@@ -349,6 +552,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPassword(v)
+		return nil
+	case user.FieldCustodyAccountID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustodyAccountID(v)
 		return nil
 	case user.FieldNickname:
 		v, ok := value.(string)
@@ -386,7 +596,11 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *UserMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(user.FieldCustodyAccountID) {
+		fields = append(fields, user.FieldCustodyAccountID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -399,6 +613,11 @@ func (m *UserMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *UserMutation) ClearField(name string) error {
+	switch name {
+	case user.FieldCustodyAccountID:
+		m.ClearCustodyAccountID()
+		return nil
+	}
 	return fmt.Errorf("unknown User nullable field %s", name)
 }
 
@@ -412,6 +631,9 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldPassword:
 		m.ResetPassword()
 		return nil
+	case user.FieldCustodyAccountID:
+		m.ResetCustodyAccountID()
+		return nil
 	case user.FieldNickname:
 		m.ResetNickname()
 		return nil
@@ -421,48 +643,1447 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.accounts != nil {
+		edges = append(edges, user.EdgeAccounts)
+	}
+	if m.user != nil {
+		edges = append(edges, user.EdgeUser)
+	}
+	if m.custody_account != nil {
+		edges = append(edges, user.EdgeCustodyAccount)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeAccounts:
+		ids := make([]ent.Value, 0, len(m.accounts))
+		for id := range m.accounts {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeUser:
+		ids := make([]ent.Value, 0, len(m.user))
+		for id := range m.user {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeCustodyAccount:
+		if id := m.custody_account; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.removedaccounts != nil {
+		edges = append(edges, user.EdgeAccounts)
+	}
+	if m.removeduser != nil {
+		edges = append(edges, user.EdgeUser)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeAccounts:
+		ids := make([]ent.Value, 0, len(m.removedaccounts))
+		for id := range m.removedaccounts {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeUser:
+		ids := make([]ent.Value, 0, len(m.removeduser))
+		for id := range m.removeduser {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.clearedaccounts {
+		edges = append(edges, user.EdgeAccounts)
+	}
+	if m.cleareduser {
+		edges = append(edges, user.EdgeUser)
+	}
+	if m.clearedcustody_account {
+		edges = append(edges, user.EdgeCustodyAccount)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgeAccounts:
+		return m.clearedaccounts
+	case user.EdgeUser:
+		return m.cleareduser
+	case user.EdgeCustodyAccount:
+		return m.clearedcustody_account
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	case user.EdgeCustodyAccount:
+		m.ClearCustodyAccount()
+		return nil
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgeAccounts:
+		m.ResetAccounts()
+		return nil
+	case user.EdgeUser:
+		m.ResetUser()
+		return nil
+	case user.EdgeCustodyAccount:
+		m.ResetCustodyAccount()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// VirtualAccountMutation represents an operation that mutates the VirtualAccount nodes in the graph.
+type VirtualAccountMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *uuid.UUID
+	_type               *virtualaccount.Type
+	name                *string
+	dollars             *int
+	adddollars          *int
+	cents               *int
+	addcents            *int
+	clearedFields       map[string]struct{}
+	transactions        map[uuid.UUID]struct{}
+	removedtransactions map[uuid.UUID]struct{}
+	clearedtransactions bool
+	user                *uuid.UUID
+	cleareduser         bool
+	done                bool
+	oldValue            func(context.Context) (*VirtualAccount, error)
+	predicates          []predicate.VirtualAccount
+}
+
+var _ ent.Mutation = (*VirtualAccountMutation)(nil)
+
+// virtualaccountOption allows management of the mutation configuration using functional options.
+type virtualaccountOption func(*VirtualAccountMutation)
+
+// newVirtualAccountMutation creates new mutation for the VirtualAccount entity.
+func newVirtualAccountMutation(c config, op Op, opts ...virtualaccountOption) *VirtualAccountMutation {
+	m := &VirtualAccountMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeVirtualAccount,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withVirtualAccountID sets the ID field of the mutation.
+func withVirtualAccountID(id uuid.UUID) virtualaccountOption {
+	return func(m *VirtualAccountMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *VirtualAccount
+		)
+		m.oldValue = func(ctx context.Context) (*VirtualAccount, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().VirtualAccount.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withVirtualAccount sets the old VirtualAccount of the mutation.
+func withVirtualAccount(node *VirtualAccount) virtualaccountOption {
+	return func(m *VirtualAccountMutation) {
+		m.oldValue = func(context.Context) (*VirtualAccount, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m VirtualAccountMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m VirtualAccountMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of VirtualAccount entities.
+func (m *VirtualAccountMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *VirtualAccountMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *VirtualAccountMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().VirtualAccount.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetType sets the "type" field.
+func (m *VirtualAccountMutation) SetType(v virtualaccount.Type) {
+	m._type = &v
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *VirtualAccountMutation) GetType() (r virtualaccount.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the VirtualAccount entity.
+// If the VirtualAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountMutation) OldType(ctx context.Context) (v virtualaccount.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *VirtualAccountMutation) ResetType() {
+	m._type = nil
+}
+
+// SetName sets the "name" field.
+func (m *VirtualAccountMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *VirtualAccountMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the VirtualAccount entity.
+// If the VirtualAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *VirtualAccountMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDollars sets the "dollars" field.
+func (m *VirtualAccountMutation) SetDollars(i int) {
+	m.dollars = &i
+	m.adddollars = nil
+}
+
+// Dollars returns the value of the "dollars" field in the mutation.
+func (m *VirtualAccountMutation) Dollars() (r int, exists bool) {
+	v := m.dollars
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDollars returns the old "dollars" field's value of the VirtualAccount entity.
+// If the VirtualAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountMutation) OldDollars(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDollars is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDollars requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDollars: %w", err)
+	}
+	return oldValue.Dollars, nil
+}
+
+// AddDollars adds i to the "dollars" field.
+func (m *VirtualAccountMutation) AddDollars(i int) {
+	if m.adddollars != nil {
+		*m.adddollars += i
+	} else {
+		m.adddollars = &i
+	}
+}
+
+// AddedDollars returns the value that was added to the "dollars" field in this mutation.
+func (m *VirtualAccountMutation) AddedDollars() (r int, exists bool) {
+	v := m.adddollars
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDollars resets all changes to the "dollars" field.
+func (m *VirtualAccountMutation) ResetDollars() {
+	m.dollars = nil
+	m.adddollars = nil
+}
+
+// SetCents sets the "cents" field.
+func (m *VirtualAccountMutation) SetCents(i int) {
+	m.cents = &i
+	m.addcents = nil
+}
+
+// Cents returns the value of the "cents" field in the mutation.
+func (m *VirtualAccountMutation) Cents() (r int, exists bool) {
+	v := m.cents
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCents returns the old "cents" field's value of the VirtualAccount entity.
+// If the VirtualAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountMutation) OldCents(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCents is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCents requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCents: %w", err)
+	}
+	return oldValue.Cents, nil
+}
+
+// AddCents adds i to the "cents" field.
+func (m *VirtualAccountMutation) AddCents(i int) {
+	if m.addcents != nil {
+		*m.addcents += i
+	} else {
+		m.addcents = &i
+	}
+}
+
+// AddedCents returns the value that was added to the "cents" field in this mutation.
+func (m *VirtualAccountMutation) AddedCents() (r int, exists bool) {
+	v := m.addcents
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCents resets all changes to the "cents" field.
+func (m *VirtualAccountMutation) ResetCents() {
+	m.cents = nil
+	m.addcents = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *VirtualAccountMutation) SetUserID(u uuid.UUID) {
+	m.user = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *VirtualAccountMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the VirtualAccount entity.
+// If the VirtualAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *VirtualAccountMutation) ResetUserID() {
+	m.user = nil
+}
+
+// AddTransactionIDs adds the "transactions" edge to the VirtualAccountTransaction entity by ids.
+func (m *VirtualAccountMutation) AddTransactionIDs(ids ...uuid.UUID) {
+	if m.transactions == nil {
+		m.transactions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.transactions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTransactions clears the "transactions" edge to the VirtualAccountTransaction entity.
+func (m *VirtualAccountMutation) ClearTransactions() {
+	m.clearedtransactions = true
+}
+
+// TransactionsCleared reports if the "transactions" edge to the VirtualAccountTransaction entity was cleared.
+func (m *VirtualAccountMutation) TransactionsCleared() bool {
+	return m.clearedtransactions
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to the VirtualAccountTransaction entity by IDs.
+func (m *VirtualAccountMutation) RemoveTransactionIDs(ids ...uuid.UUID) {
+	if m.removedtransactions == nil {
+		m.removedtransactions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.transactions, ids[i])
+		m.removedtransactions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTransactions returns the removed IDs of the "transactions" edge to the VirtualAccountTransaction entity.
+func (m *VirtualAccountMutation) RemovedTransactionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedtransactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TransactionsIDs returns the "transactions" edge IDs in the mutation.
+func (m *VirtualAccountMutation) TransactionsIDs() (ids []uuid.UUID) {
+	for id := range m.transactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTransactions resets all changes to the "transactions" edge.
+func (m *VirtualAccountMutation) ResetTransactions() {
+	m.transactions = nil
+	m.clearedtransactions = false
+	m.removedtransactions = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *VirtualAccountMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[virtualaccount.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *VirtualAccountMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *VirtualAccountMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *VirtualAccountMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the VirtualAccountMutation builder.
+func (m *VirtualAccountMutation) Where(ps ...predicate.VirtualAccount) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the VirtualAccountMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *VirtualAccountMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.VirtualAccount, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *VirtualAccountMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *VirtualAccountMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (VirtualAccount).
+func (m *VirtualAccountMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *VirtualAccountMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m._type != nil {
+		fields = append(fields, virtualaccount.FieldType)
+	}
+	if m.name != nil {
+		fields = append(fields, virtualaccount.FieldName)
+	}
+	if m.dollars != nil {
+		fields = append(fields, virtualaccount.FieldDollars)
+	}
+	if m.cents != nil {
+		fields = append(fields, virtualaccount.FieldCents)
+	}
+	if m.user != nil {
+		fields = append(fields, virtualaccount.FieldUserID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *VirtualAccountMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case virtualaccount.FieldType:
+		return m.GetType()
+	case virtualaccount.FieldName:
+		return m.Name()
+	case virtualaccount.FieldDollars:
+		return m.Dollars()
+	case virtualaccount.FieldCents:
+		return m.Cents()
+	case virtualaccount.FieldUserID:
+		return m.UserID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *VirtualAccountMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case virtualaccount.FieldType:
+		return m.OldType(ctx)
+	case virtualaccount.FieldName:
+		return m.OldName(ctx)
+	case virtualaccount.FieldDollars:
+		return m.OldDollars(ctx)
+	case virtualaccount.FieldCents:
+		return m.OldCents(ctx)
+	case virtualaccount.FieldUserID:
+		return m.OldUserID(ctx)
+	}
+	return nil, fmt.Errorf("unknown VirtualAccount field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *VirtualAccountMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case virtualaccount.FieldType:
+		v, ok := value.(virtualaccount.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case virtualaccount.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case virtualaccount.FieldDollars:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDollars(v)
+		return nil
+	case virtualaccount.FieldCents:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCents(v)
+		return nil
+	case virtualaccount.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccount field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *VirtualAccountMutation) AddedFields() []string {
+	var fields []string
+	if m.adddollars != nil {
+		fields = append(fields, virtualaccount.FieldDollars)
+	}
+	if m.addcents != nil {
+		fields = append(fields, virtualaccount.FieldCents)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *VirtualAccountMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case virtualaccount.FieldDollars:
+		return m.AddedDollars()
+	case virtualaccount.FieldCents:
+		return m.AddedCents()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *VirtualAccountMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case virtualaccount.FieldDollars:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDollars(v)
+		return nil
+	case virtualaccount.FieldCents:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCents(v)
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccount numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *VirtualAccountMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *VirtualAccountMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *VirtualAccountMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown VirtualAccount nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *VirtualAccountMutation) ResetField(name string) error {
+	switch name {
+	case virtualaccount.FieldType:
+		m.ResetType()
+		return nil
+	case virtualaccount.FieldName:
+		m.ResetName()
+		return nil
+	case virtualaccount.FieldDollars:
+		m.ResetDollars()
+		return nil
+	case virtualaccount.FieldCents:
+		m.ResetCents()
+		return nil
+	case virtualaccount.FieldUserID:
+		m.ResetUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccount field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *VirtualAccountMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.transactions != nil {
+		edges = append(edges, virtualaccount.EdgeTransactions)
+	}
+	if m.user != nil {
+		edges = append(edges, virtualaccount.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *VirtualAccountMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case virtualaccount.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.transactions))
+		for id := range m.transactions {
+			ids = append(ids, id)
+		}
+		return ids
+	case virtualaccount.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *VirtualAccountMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedtransactions != nil {
+		edges = append(edges, virtualaccount.EdgeTransactions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *VirtualAccountMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case virtualaccount.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.removedtransactions))
+		for id := range m.removedtransactions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *VirtualAccountMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedtransactions {
+		edges = append(edges, virtualaccount.EdgeTransactions)
+	}
+	if m.cleareduser {
+		edges = append(edges, virtualaccount.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *VirtualAccountMutation) EdgeCleared(name string) bool {
+	switch name {
+	case virtualaccount.EdgeTransactions:
+		return m.clearedtransactions
+	case virtualaccount.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *VirtualAccountMutation) ClearEdge(name string) error {
+	switch name {
+	case virtualaccount.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccount unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *VirtualAccountMutation) ResetEdge(name string) error {
+	switch name {
+	case virtualaccount.EdgeTransactions:
+		m.ResetTransactions()
+		return nil
+	case virtualaccount.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccount edge %s", name)
+}
+
+// VirtualAccountTransactionMutation represents an operation that mutates the VirtualAccountTransaction nodes in the graph.
+type VirtualAccountTransactionMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	adjusted_dollars       *int
+	addadjusted_dollars    *int
+	adjusted_cents         *int
+	addadjusted_cents      *int
+	clearedFields          map[string]struct{}
+	virtual_account        *uuid.UUID
+	clearedvirtual_account bool
+	done                   bool
+	oldValue               func(context.Context) (*VirtualAccountTransaction, error)
+	predicates             []predicate.VirtualAccountTransaction
+}
+
+var _ ent.Mutation = (*VirtualAccountTransactionMutation)(nil)
+
+// virtualaccounttransactionOption allows management of the mutation configuration using functional options.
+type virtualaccounttransactionOption func(*VirtualAccountTransactionMutation)
+
+// newVirtualAccountTransactionMutation creates new mutation for the VirtualAccountTransaction entity.
+func newVirtualAccountTransactionMutation(c config, op Op, opts ...virtualaccounttransactionOption) *VirtualAccountTransactionMutation {
+	m := &VirtualAccountTransactionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeVirtualAccountTransaction,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withVirtualAccountTransactionID sets the ID field of the mutation.
+func withVirtualAccountTransactionID(id uuid.UUID) virtualaccounttransactionOption {
+	return func(m *VirtualAccountTransactionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *VirtualAccountTransaction
+		)
+		m.oldValue = func(ctx context.Context) (*VirtualAccountTransaction, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().VirtualAccountTransaction.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withVirtualAccountTransaction sets the old VirtualAccountTransaction of the mutation.
+func withVirtualAccountTransaction(node *VirtualAccountTransaction) virtualaccounttransactionOption {
+	return func(m *VirtualAccountTransactionMutation) {
+		m.oldValue = func(context.Context) (*VirtualAccountTransaction, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m VirtualAccountTransactionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m VirtualAccountTransactionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of VirtualAccountTransaction entities.
+func (m *VirtualAccountTransactionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *VirtualAccountTransactionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *VirtualAccountTransactionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().VirtualAccountTransaction.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAdjustedDollars sets the "adjusted_dollars" field.
+func (m *VirtualAccountTransactionMutation) SetAdjustedDollars(i int) {
+	m.adjusted_dollars = &i
+	m.addadjusted_dollars = nil
+}
+
+// AdjustedDollars returns the value of the "adjusted_dollars" field in the mutation.
+func (m *VirtualAccountTransactionMutation) AdjustedDollars() (r int, exists bool) {
+	v := m.adjusted_dollars
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdjustedDollars returns the old "adjusted_dollars" field's value of the VirtualAccountTransaction entity.
+// If the VirtualAccountTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountTransactionMutation) OldAdjustedDollars(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdjustedDollars is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdjustedDollars requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdjustedDollars: %w", err)
+	}
+	return oldValue.AdjustedDollars, nil
+}
+
+// AddAdjustedDollars adds i to the "adjusted_dollars" field.
+func (m *VirtualAccountTransactionMutation) AddAdjustedDollars(i int) {
+	if m.addadjusted_dollars != nil {
+		*m.addadjusted_dollars += i
+	} else {
+		m.addadjusted_dollars = &i
+	}
+}
+
+// AddedAdjustedDollars returns the value that was added to the "adjusted_dollars" field in this mutation.
+func (m *VirtualAccountTransactionMutation) AddedAdjustedDollars() (r int, exists bool) {
+	v := m.addadjusted_dollars
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAdjustedDollars resets all changes to the "adjusted_dollars" field.
+func (m *VirtualAccountTransactionMutation) ResetAdjustedDollars() {
+	m.adjusted_dollars = nil
+	m.addadjusted_dollars = nil
+}
+
+// SetAdjustedCents sets the "adjusted_cents" field.
+func (m *VirtualAccountTransactionMutation) SetAdjustedCents(i int) {
+	m.adjusted_cents = &i
+	m.addadjusted_cents = nil
+}
+
+// AdjustedCents returns the value of the "adjusted_cents" field in the mutation.
+func (m *VirtualAccountTransactionMutation) AdjustedCents() (r int, exists bool) {
+	v := m.adjusted_cents
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdjustedCents returns the old "adjusted_cents" field's value of the VirtualAccountTransaction entity.
+// If the VirtualAccountTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountTransactionMutation) OldAdjustedCents(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdjustedCents is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdjustedCents requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdjustedCents: %w", err)
+	}
+	return oldValue.AdjustedCents, nil
+}
+
+// AddAdjustedCents adds i to the "adjusted_cents" field.
+func (m *VirtualAccountTransactionMutation) AddAdjustedCents(i int) {
+	if m.addadjusted_cents != nil {
+		*m.addadjusted_cents += i
+	} else {
+		m.addadjusted_cents = &i
+	}
+}
+
+// AddedAdjustedCents returns the value that was added to the "adjusted_cents" field in this mutation.
+func (m *VirtualAccountTransactionMutation) AddedAdjustedCents() (r int, exists bool) {
+	v := m.addadjusted_cents
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAdjustedCents resets all changes to the "adjusted_cents" field.
+func (m *VirtualAccountTransactionMutation) ResetAdjustedCents() {
+	m.adjusted_cents = nil
+	m.addadjusted_cents = nil
+}
+
+// SetVirtualAccountID sets the "virtual_account_id" field.
+func (m *VirtualAccountTransactionMutation) SetVirtualAccountID(u uuid.UUID) {
+	m.virtual_account = &u
+}
+
+// VirtualAccountID returns the value of the "virtual_account_id" field in the mutation.
+func (m *VirtualAccountTransactionMutation) VirtualAccountID() (r uuid.UUID, exists bool) {
+	v := m.virtual_account
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVirtualAccountID returns the old "virtual_account_id" field's value of the VirtualAccountTransaction entity.
+// If the VirtualAccountTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VirtualAccountTransactionMutation) OldVirtualAccountID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVirtualAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVirtualAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVirtualAccountID: %w", err)
+	}
+	return oldValue.VirtualAccountID, nil
+}
+
+// ResetVirtualAccountID resets all changes to the "virtual_account_id" field.
+func (m *VirtualAccountTransactionMutation) ResetVirtualAccountID() {
+	m.virtual_account = nil
+}
+
+// ClearVirtualAccount clears the "virtual_account" edge to the VirtualAccount entity.
+func (m *VirtualAccountTransactionMutation) ClearVirtualAccount() {
+	m.clearedvirtual_account = true
+	m.clearedFields[virtualaccounttransaction.FieldVirtualAccountID] = struct{}{}
+}
+
+// VirtualAccountCleared reports if the "virtual_account" edge to the VirtualAccount entity was cleared.
+func (m *VirtualAccountTransactionMutation) VirtualAccountCleared() bool {
+	return m.clearedvirtual_account
+}
+
+// VirtualAccountIDs returns the "virtual_account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// VirtualAccountID instead. It exists only for internal usage by the builders.
+func (m *VirtualAccountTransactionMutation) VirtualAccountIDs() (ids []uuid.UUID) {
+	if id := m.virtual_account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetVirtualAccount resets all changes to the "virtual_account" edge.
+func (m *VirtualAccountTransactionMutation) ResetVirtualAccount() {
+	m.virtual_account = nil
+	m.clearedvirtual_account = false
+}
+
+// Where appends a list predicates to the VirtualAccountTransactionMutation builder.
+func (m *VirtualAccountTransactionMutation) Where(ps ...predicate.VirtualAccountTransaction) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the VirtualAccountTransactionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *VirtualAccountTransactionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.VirtualAccountTransaction, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *VirtualAccountTransactionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *VirtualAccountTransactionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (VirtualAccountTransaction).
+func (m *VirtualAccountTransactionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *VirtualAccountTransactionMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.adjusted_dollars != nil {
+		fields = append(fields, virtualaccounttransaction.FieldAdjustedDollars)
+	}
+	if m.adjusted_cents != nil {
+		fields = append(fields, virtualaccounttransaction.FieldAdjustedCents)
+	}
+	if m.virtual_account != nil {
+		fields = append(fields, virtualaccounttransaction.FieldVirtualAccountID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *VirtualAccountTransactionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case virtualaccounttransaction.FieldAdjustedDollars:
+		return m.AdjustedDollars()
+	case virtualaccounttransaction.FieldAdjustedCents:
+		return m.AdjustedCents()
+	case virtualaccounttransaction.FieldVirtualAccountID:
+		return m.VirtualAccountID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *VirtualAccountTransactionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case virtualaccounttransaction.FieldAdjustedDollars:
+		return m.OldAdjustedDollars(ctx)
+	case virtualaccounttransaction.FieldAdjustedCents:
+		return m.OldAdjustedCents(ctx)
+	case virtualaccounttransaction.FieldVirtualAccountID:
+		return m.OldVirtualAccountID(ctx)
+	}
+	return nil, fmt.Errorf("unknown VirtualAccountTransaction field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *VirtualAccountTransactionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case virtualaccounttransaction.FieldAdjustedDollars:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdjustedDollars(v)
+		return nil
+	case virtualaccounttransaction.FieldAdjustedCents:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdjustedCents(v)
+		return nil
+	case virtualaccounttransaction.FieldVirtualAccountID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVirtualAccountID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccountTransaction field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *VirtualAccountTransactionMutation) AddedFields() []string {
+	var fields []string
+	if m.addadjusted_dollars != nil {
+		fields = append(fields, virtualaccounttransaction.FieldAdjustedDollars)
+	}
+	if m.addadjusted_cents != nil {
+		fields = append(fields, virtualaccounttransaction.FieldAdjustedCents)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *VirtualAccountTransactionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case virtualaccounttransaction.FieldAdjustedDollars:
+		return m.AddedAdjustedDollars()
+	case virtualaccounttransaction.FieldAdjustedCents:
+		return m.AddedAdjustedCents()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *VirtualAccountTransactionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case virtualaccounttransaction.FieldAdjustedDollars:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAdjustedDollars(v)
+		return nil
+	case virtualaccounttransaction.FieldAdjustedCents:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAdjustedCents(v)
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccountTransaction numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *VirtualAccountTransactionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *VirtualAccountTransactionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *VirtualAccountTransactionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown VirtualAccountTransaction nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *VirtualAccountTransactionMutation) ResetField(name string) error {
+	switch name {
+	case virtualaccounttransaction.FieldAdjustedDollars:
+		m.ResetAdjustedDollars()
+		return nil
+	case virtualaccounttransaction.FieldAdjustedCents:
+		m.ResetAdjustedCents()
+		return nil
+	case virtualaccounttransaction.FieldVirtualAccountID:
+		m.ResetVirtualAccountID()
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccountTransaction field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *VirtualAccountTransactionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.virtual_account != nil {
+		edges = append(edges, virtualaccounttransaction.EdgeVirtualAccount)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *VirtualAccountTransactionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case virtualaccounttransaction.EdgeVirtualAccount:
+		if id := m.virtual_account; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *VirtualAccountTransactionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *VirtualAccountTransactionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *VirtualAccountTransactionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedvirtual_account {
+		edges = append(edges, virtualaccounttransaction.EdgeVirtualAccount)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *VirtualAccountTransactionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case virtualaccounttransaction.EdgeVirtualAccount:
+		return m.clearedvirtual_account
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *VirtualAccountTransactionMutation) ClearEdge(name string) error {
+	switch name {
+	case virtualaccounttransaction.EdgeVirtualAccount:
+		m.ClearVirtualAccount()
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccountTransaction unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *VirtualAccountTransactionMutation) ResetEdge(name string) error {
+	switch name {
+	case virtualaccounttransaction.EdgeVirtualAccount:
+		m.ResetVirtualAccount()
+		return nil
+	}
+	return fmt.Errorf("unknown VirtualAccountTransaction edge %s", name)
 }

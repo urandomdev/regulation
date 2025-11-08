@@ -16,6 +16,10 @@ type Tx struct {
 	config
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// VirtualAccount is the client for interacting with the VirtualAccount builders.
+	VirtualAccount *VirtualAccountClient
+	// VirtualAccountTransaction is the client for interacting with the VirtualAccountTransaction builders.
+	VirtualAccountTransaction *VirtualAccountTransactionClient
 
 	// lazily loaded.
 	client     *Client
@@ -148,6 +152,8 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.User = NewUserClient(tx.config)
+	tx.VirtualAccount = NewVirtualAccountClient(tx.config)
+	tx.VirtualAccountTransaction = NewVirtualAccountTransactionClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

@@ -8,3 +8,9 @@ import (
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// VirtualAccount is the predicate function for virtualaccount builders.
+type VirtualAccount func(*sql.Selector)
+
+// VirtualAccountTransaction is the predicate function for virtualaccounttransaction builders.
+type VirtualAccountTransaction func(*sql.Selector)

@@ -15,6 +15,7 @@ import (
 const (
 	sessionKeyPrefix = "session:"
 	sessionTTL       = 24 * time.Hour
+	sessionIDBytes   = 32 // 256 bits for cryptographic security
 )
 
 // Manager handles session storage and retrieval
@@ -44,11 +45,12 @@ func (m *Manager) Create(ctx context.Context, userID uuid.UUID) (*Session, error
 		return nil, fmt.Errorf("failed to generate session ID: %w", err)
 	}
 
+	now := time.Now().UTC()
 	session := &Session{
 		ID:           sessionID,
 		UserID:       userID,
-		CreatedAt:    time.Now().UTC(),
-		LastAccessed: time.Now().UTC(),
+		CreatedAt:    now,
+		LastAccessed: now,
 	}
 
 	if err := m.save(ctx, session); err != nil {
@@ -60,6 +62,10 @@ func (m *Manager) Create(ctx context.Context, userID uuid.UUID) (*Session, error
 
 // Get retrieves a session by ID and refreshes its TTL
 func (m *Manager) Get(ctx context.Context, sessionID string) (*Session, error) {
+	if sessionID == "" {
+		return nil, errors.New("session ID cannot be empty")
+	}
+
 	key := sessionKey(sessionID)
 
 	cmd := m.cache.B().Hgetall().Key(key).Build()
@@ -99,6 +105,10 @@ func (m *Manager) Get(ctx context.Context, sessionID string) (*Session, error) {
 
 // Delete removes a session from storage
 func (m *Manager) Delete(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
+		return errors.New("session ID cannot be empty")
+	}
+
 	key := sessionKey(sessionID)
 
 	cmd := m.cache.B().Del().Key(key).Build()
@@ -113,8 +123,7 @@ func (m *Manager) Delete(ctx context.Context, sessionID string) error {
 func (m *Manager) save(ctx context.Context, session *Session) error {
 	key := sessionKey(session.ID)
 
-	cmds := make(rueidis.Commands, 0, 2)
-	cmds = append(cmds,
+	responses := m.cache.DoMulti(ctx,
 		m.cache.B().Hset().
 			Key(key).
 			FieldValue().
@@ -125,7 +134,7 @@ func (m *Manager) save(ctx context.Context, session *Session) error {
 		m.cache.B().Expire().Key(key).Seconds(int64(sessionTTL.Seconds())).Build(),
 	)
 
-	for _, resp := range m.cache.DoMulti(ctx, cmds...) {
+	for _, resp := range responses {
 		if err := resp.Error(); err != nil {
 			return fmt.Errorf("failed to save session: %w", err)
 		}
@@ -141,9 +150,9 @@ func sessionKey(sessionID string) string {
 
 // generateSessionID creates a cryptographically secure random session ID
 func generateSessionID() (string, error) {
-	bytes := make([]byte, 32) // 256 bits
+	bytes := make([]byte, sessionIDBytes)
 	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
 	return hex.EncodeToString(bytes), nil
 }

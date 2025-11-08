@@ -4,6 +4,7 @@ package user
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -16,10 +17,33 @@ const (
 	FieldEmail = "email"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
+	// FieldCustodyAccountID holds the string denoting the custody_account_id field in the database.
+	FieldCustodyAccountID = "custody_account_id"
 	// FieldNickname holds the string denoting the nickname field in the database.
 	FieldNickname = "nickname"
+	// EdgeAccounts holds the string denoting the accounts edge name in mutations.
+	EdgeAccounts = "accounts"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
+	// EdgeCustodyAccount holds the string denoting the custody_account edge name in mutations.
+	EdgeCustodyAccount = "custody_account"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// AccountsTable is the table that holds the accounts relation/edge.
+	AccountsTable = "virtual_accounts"
+	// AccountsInverseTable is the table name for the VirtualAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "virtualaccount" package.
+	AccountsInverseTable = "virtual_accounts"
+	// AccountsColumn is the table column denoting the accounts relation/edge.
+	AccountsColumn = "user_id"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "custody_account_id"
+	// CustodyAccountTable is the table that holds the custody_account relation/edge.
+	CustodyAccountTable = "users"
+	// CustodyAccountColumn is the table column denoting the custody_account relation/edge.
+	CustodyAccountColumn = "custody_account_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -27,6 +51,7 @@ var Columns = []string{
 	FieldID,
 	FieldEmail,
 	FieldPassword,
+	FieldCustodyAccountID,
 	FieldNickname,
 }
 
@@ -58,7 +83,68 @@ func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmail, opts...).ToFunc()
 }
 
+// ByCustodyAccountID orders the results by the custody_account_id field.
+func ByCustodyAccountID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustodyAccountID, opts...).ToFunc()
+}
+
 // ByNickname orders the results by the nickname field.
 func ByNickname(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNickname, opts...).ToFunc()
+}
+
+// ByAccountsCount orders the results by accounts count.
+func ByAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAccountsStep(), opts...)
+	}
+}
+
+// ByAccounts orders the results by accounts terms.
+func ByAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByUserCount orders the results by user count.
+func ByUserCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUserStep(), opts...)
+	}
+}
+
+// ByUser orders the results by user terms.
+func ByUser(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCustodyAccountField orders the results by custody_account field.
+func ByCustodyAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustodyAccountStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newAccountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AccountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AccountsTable, AccountsColumn),
+	)
+}
+func newUserStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, UserTable, UserColumn),
+	)
+}
+func newCustodyAccountStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CustodyAccountTable, CustodyAccountColumn),
+	)
 }

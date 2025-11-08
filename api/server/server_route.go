@@ -7,14 +7,20 @@ import (
 )
 
 func (s *Server) route() {
-	handler := account.New(s.db, s.sessionManager)
-	auth := middleware.NewAuth(s.db, s.sessionManager)
+	s.app.Use(middleware.NewRequestInfoMiddleware())
+	s.app.Use(middleware.NewLoggerMiddleware(s.logger))
 
-	// Public routes (no authentication required)
-	s.app.Post("/account/signup", ro.WrapHandler2(handler.Signup))
-	s.app.Post("/account/login", ro.WrapHandler2(handler.Login))
+	accountGroup := s.app.Group("/account")
+	{
+		handler := account.New(s.db, s.sessionManager)
+		auth := middleware.NewAuth(s.db, s.sessionManager)
 
-	// Protected routes (authentication required)
-	s.app.Post("/account/logout", auth.Handle, ro.WrapHandler4(handler.Logout))
-	s.app.Get("/account/me", auth.Handle, ro.WrapHandler3(handler.Me))
+		accountGroup.Post("/signup", ro.WrapHandler2(handler.Signup))
+		accountGroup.Post("/login", ro.WrapHandler2(handler.Login))
+
+		// Protected routes (authentication required)
+		accountGroup.Post("/logout", auth.Handle, ro.WrapHandler4(handler.Logout))
+		accountGroup.Get("/me", auth.Handle, ro.WrapHandler3(handler.Me))
+	}
+
 }

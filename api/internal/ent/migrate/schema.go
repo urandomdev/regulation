@@ -14,18 +14,76 @@ var (
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeBytes},
 		{Name: "nickname", Type: field.TypeString},
+		{Name: "custody_account_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "users_users_custody_account",
+				Columns:    []*schema.Column{UsersColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// VirtualAccountsColumns holds the columns for the "virtual_accounts" table.
+	VirtualAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"checking", "saving"}},
+		{Name: "name", Type: field.TypeString},
+		{Name: "dollars", Type: field.TypeInt},
+		{Name: "cents", Type: field.TypeInt},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// VirtualAccountsTable holds the schema information for the "virtual_accounts" table.
+	VirtualAccountsTable = &schema.Table{
+		Name:       "virtual_accounts",
+		Columns:    VirtualAccountsColumns,
+		PrimaryKey: []*schema.Column{VirtualAccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "virtual_accounts_users_accounts",
+				Columns:    []*schema.Column{VirtualAccountsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// VirtualAccountTransactionsColumns holds the columns for the "virtual_account_transactions" table.
+	VirtualAccountTransactionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "adjusted_dollars", Type: field.TypeInt},
+		{Name: "adjusted_cents", Type: field.TypeInt},
+		{Name: "virtual_account_id", Type: field.TypeUUID},
+	}
+	// VirtualAccountTransactionsTable holds the schema information for the "virtual_account_transactions" table.
+	VirtualAccountTransactionsTable = &schema.Table{
+		Name:       "virtual_account_transactions",
+		Columns:    VirtualAccountTransactionsColumns,
+		PrimaryKey: []*schema.Column{VirtualAccountTransactionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "virtual_account_transactions_virtual_accounts_transactions",
+				Columns:    []*schema.Column{VirtualAccountTransactionsColumns[3]},
+				RefColumns: []*schema.Column{VirtualAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		UsersTable,
+		VirtualAccountsTable,
+		VirtualAccountTransactionsTable,
 	}
 )
 
 func init() {
+	UsersTable.ForeignKeys[0].RefTable = UsersTable
+	VirtualAccountsTable.ForeignKeys[0].RefTable = UsersTable
+	VirtualAccountTransactionsTable.ForeignKeys[0].RefTable = VirtualAccountsTable
 }
