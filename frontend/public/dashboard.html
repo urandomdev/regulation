@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #F5B84B;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(245, 184, 75, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .fab:hover {
+            transform: scale(1.05);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-24">
+    <!-- Container -->
+    <div class="max-w-md mx-auto px-5 py-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">Hello, Alex!</h1>
+            <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
+                <svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Billing Overview Card -->
+        <div class="card p-6 mb-4">
+            <div class="flex items-start justify-between mb-3">
+                <h2 class="text-base font-semibold text-gray-900">Billing Overview</h2>
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+            <div class="mb-1">
+                <p class="text-sm text-gray-500 mb-2">Unpaid Invoices</p>
+                <p class="text-4xl font-bold text-gray-900">$1,250.75</p>
+            </div>
+        </div>
+
+        <!-- Upcoming Missions Card -->
+        <div class="card p-6 mb-4">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-base font-semibold text-gray-900">Upcoming Missions</h2>
+                <button class="text-sm text-blue-500 font-medium hover:text-blue-600">View All</button>
+            </div>
+
+            <!-- Mission Item 1 -->
+            <div class="flex items-center justify-between mb-5 pb-5 border-b border-gray-100">
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Website Redesign</h3>
+                    <p class="text-xs text-gray-500 mb-1">Client: TechCorp Solutions</p>
+                    <p class="text-xs text-gray-400">Due: Nov 30, 2025</p>
+                </div>
+                <svg class="w-5 h-5 text-gray-400 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+
+            <!-- Mission Item 2 -->
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Mobile App Mockups</h3>
+                    <p class="text-xs text-gray-500 mb-1">Client: StartupHub Inc</p>
+                    <p class="text-xs text-gray-400">Due: Dec 5, 2025</p>
+                </div>
+                <svg class="w-5 h-5 text-gray-400 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Pending Controls Card -->
+        <div class="card p-6 mb-4">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-base font-semibold text-gray-900">Pending Controls</h2>
+            </div>
+
+            <!-- Control Item 1 -->
+            <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Security Audit</h3>
+                    <p class="text-xs text-gray-500">Review system access logs</p>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 flex-shrink-0 ml-3">
+                    Requires Attention
+                </span>
+            </div>
+
+            <!-- Control Item 2 -->
+            <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Compliance Check</h3>
+                    <p class="text-xs text-gray-500">Q4 regulatory review</p>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 flex-shrink-0 ml-3">
+                    In Progress
+                </span>
+            </div>
+
+            <!-- Control Item 3 -->
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Data Backup</h3>
+                    <p class="text-xs text-gray-500">Weekly backup verification</p>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 flex-shrink-0 ml-3">
+                    Requires Attention
+                </span>
+            </div>
+        </div>
+
+        <!-- This Week Card (Calendar) -->
+        <div class="card p-6 mb-4">
+            <h2 class="text-base font-semibold text-gray-900 mb-5">This Week</h2>
+
+            <!-- Calendar Days -->
+            <div class="flex items-center justify-between">
+                <!-- Monday -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-medium mb-2">MON</span>
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-900">21</span>
+                    </div>
+                </div>
+
+                <!-- Tuesday -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-medium mb-2">TUE</span>
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-900">22</span>
+                    </div>
+                </div>
+
+                <!-- Wednesday (Active) -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-blue-500 font-medium mb-2">WED</span>
+                    <div class="w-11 h-11 rounded-full bg-blue-500 flex items-center justify-center">
+                        <span class="text-sm font-semibold text-white">23</span>
+                    </div>
+                </div>
+
+                <!-- Thursday -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-medium mb-2">THU</span>
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-900">24</span>
+                    </div>
+                </div>
+
+                <!-- Friday -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-medium mb-2">FRI</span>
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-900">25</span>
+                    </div>
+                </div>
+
+                <!-- Saturday -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-medium mb-2">SAT</span>
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-900">26</span>
+                    </div>
+                </div>
+
+                <!-- Sunday -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-medium mb-2">SUN</span>
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-900">27</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Destination Card -->
+        <div class="card p-6">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Next Destination</h2>
+
+            <div class="mb-4">
+                <h3 class="text-lg font-bold text-gray-900 mb-1">San Francisco Office</h3>
+                <p class="text-sm text-gray-500 mb-1">123 Market Street, Floor 5</p>
+                <p class="text-xs text-gray-400">Meeting scheduled: Nov 23, 2:00 PM</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold py-3 px-4 rounded-lg transition-colors">
+                    Open in Maps
+                </button>
+                <button class="text-sm text-blue-500 font-semibold hover:text-blue-600 transition-colors px-2">
+                    View All
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Floating Action Button (FAB) -->
+    <button class="fab" onclick="handleFabClick()">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+        </svg>
+    </button>
+
+    <script>
+        function handleFabClick() {
+            alert('FAB clicked! Add your custom action here.');
+        }
+
+        // Optional: Add smooth scroll behavior
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

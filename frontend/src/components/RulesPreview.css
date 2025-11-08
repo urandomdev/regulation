@@ -1,0 +1,100 @@
+.rules-preview-card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rules-preview-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.rules-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-blue-text);
+  background: var(--accent-blue-light);
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-full);
+}
+
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.rule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.rule-info {
+  flex: 1;
+}
+
+.rule-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.375rem;
+}
+
+.rule-stats {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rule-toggle {
+  width: 48px;
+  height: 26px;
+  background: var(--border);
+  border-radius: 13px;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  margin-left: var(--spacing-md);
+}
+
+.rule-toggle.active {
+  background: var(--primary-blue);
+}
+
+.toggle-indicator {
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.rule-toggle.active .toggle-indicator {
+  transform: translateX(22px);
+}
+
+.add-rule-button {
+  width: 100%;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.add-rule-button:hover {
+  opacity: 0.9;
+}

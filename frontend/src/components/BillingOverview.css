@@ -1,0 +1,48 @@
+.billing-overview-container {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.billing-header {
+  display: flex;
+  align-items: flex-start;
+  justify-between;
+  margin-bottom: var(--spacing-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.billing-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.billing-header svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.billing-content {
+  margin-top: var(--spacing-md);
+}
+
+.billing-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+  display: block;
+}
+
+.billing-amount {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}

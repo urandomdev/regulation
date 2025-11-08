@@ -1,0 +1,122 @@
+.cashflow-calendar-card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cashflow-calendar-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.view-month-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--primary-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.view-month-link:hover {
+  color: var(--primary-blue-light);
+}
+
+.calendar-week {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: var(--spacing-xl) 0;
+}
+
+.calendar-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.day-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.calendar-day.today .day-label {
+  color: var(--primary-blue);
+}
+
+.day-number {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.calendar-day.today .day-number {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.day-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 50px;
+  width: 100%;
+}
+
+.bar {
+  width: 10px;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.2s ease;
+}
+
+.spend-bar {
+  background: var(--text-tertiary);
+}
+
+.income-bar {
+  background: var(--success);
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.legend-color.spend {
+  background: var(--text-tertiary);
+}
+
+.legend-color.income {
+  background: var(--success);
+}

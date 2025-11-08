@@ -1,73 +1,125 @@
-# React + TypeScript + Vite
+# React UI/UX Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React application with Family Management, Billing Overview, and Saving Goals features.
 
-Currently, two official plugins are available:
+## Features Implemented
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 1. Family Management Component
+- **Renamed from**: "pedding controll" (as requested)
+- **Location**: `src/components/FamilyManagement.jsx`
+- Displays family management interface with clean design
 
-## React Compiler
+### 2. Billing Overview with Transaction History
+- **Location**: `src/components/BillingOverview.jsx`
+- **Interaction**: Clicking on "Billing Overview" toggles the Transaction History view
+- Shows billing summary with current balance, next payment, and payment method
+- Transaction History displays as an expandable section below the billing overview
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 3. Upcoming Missions with Navigation
+- **Location**: `src/components/UpcomingMissions.jsx`
+- **Navigation**: Clicking on "Upcoming Missions" navigates to the Saving Goals page
+- Displays progress on current saving missions
+- Visual hover effects indicate clickability
 
-## Expanding the ESLint configuration
+### 4. Saving Goals Page
+- **Location**: `src/pages/SavingGoals.jsx`
+- Full page dedicated to all saving goals
+- Displays goal progress, target amounts, and deadlines
+- Back button to return to dashboard
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Project Structure
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── FamilyManagement.jsx
+│   │   ├── FamilyManagement.css
+│   │   ├── BillingOverview.jsx
+│   │   ├── BillingOverview.css
+│   │   ├── TransactionHistory.jsx
+│   │   ├── TransactionHistory.css
+│   │   ├── UpcomingMissions.jsx
+│   │   └── UpcomingMissions.css
+│   ├── pages/
+│   │   ├── Dashboard.jsx
+│   │   ├── Dashboard.css
+│   │   ├── SavingGoals.jsx
+│   │   └── SavingGoals.css
+│   ├── App.jsx
+│   ├── App.css
+│   └── main.jsx
+├── package.json
+└── vite.config.js
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Installation & Running
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Steps
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
 ```
+
+2. Install dependencies (if not already installed):
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+4. Open your browser and navigate to:
+```
+http://localhost:5173/
+```
+
+## Usage
+
+### Dashboard
+The main dashboard displays three main components:
+- **Family Management**: Manage family members and accounts
+- **Billing Overview**: View billing summary (click to expand Transaction History)
+- **Upcoming Missions**: View saving progress (click to navigate to full Saving Goals page)
+
+### Navigation
+- Click on **"Upcoming Missions"** to navigate to the Saving Goals page
+- Click on **"Billing Overview"** header to toggle Transaction History
+- Use the **"Back to Dashboard"** button on the Saving Goals page to return
+
+## Design Philosophy
+
+- **Clean & Minimal**: Simple, modern design with card-based layouts
+- **Consistent Styling**: Uniform color scheme and spacing throughout
+- **Responsive**: Adapts to different screen sizes
+- **Interactive**: Hover effects and transitions for better UX
+- **Accessible**: Clear typography and color contrast
+
+## Technologies Used
+
+- **React**: UI library
+- **React Router**: Client-side routing
+- **Vite**: Build tool and development server
+- **CSS3**: Styling with modern features (Grid, Flexbox, Transitions)
+
+## Build for Production
+
+```bash
+npm run build
+```
+
+The production-ready files will be in the `dist/` directory.
+
+## Notes
+
+- All components maintain the existing design system
+- No external UI libraries were used to maintain full design control
+- All interactions are implemented with React state management
+- Routing is handled client-side with React Router
