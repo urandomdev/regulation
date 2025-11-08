@@ -38,13 +38,17 @@ class FinancialService {
   // Get transactions with optional filters
   async getTransactions(params = {}) {
     try {
-      const response = await financialApi.getTransactions({
+      const [response, error] = await financialApi.getTransactions({
         start: params.start,
         end: params.end,
         accountId: params.accountId,
         limit: params.limit || 50,
         offset: params.offset || 0,
       });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch transactions');
+      }
 
       const transactions = response.transactions.map(t => ({
         id: t.id,
@@ -74,12 +78,16 @@ class FinancialService {
   // Get transactions for specific account
   async getAccountTransactions(accountId, params = {}) {
     try {
-      const response = await financialApi.getAccountTransactions(accountId, {
+      const [response, error] = await financialApi.getAccountTransactions(accountId, {
         start: params.start,
         end: params.end,
         limit: params.limit || 50,
         offset: params.offset || 0,
       });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch account transactions');
+      }
 
       return {
         data: response.transactions.map(t => ({
@@ -105,11 +113,15 @@ class FinancialService {
   // Get cashflow data for date range
   async getCashflow(start, end) {
     try {
-      const response = await financialApi.getCashflow(start, end);
+      const [response, error] = await financialApi.getCashflow({ start, end });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch cashflow');
+      }
 
       this.cache.cashflow = {
-        income: utils.centsToDollars(response.totalIncome),
-        spend: utils.centsToDollars(response.totalSpend),
+        income: utils.centsToDollars(response.total_income),
+        spend: utils.centsToDollars(response.total_spend),
         net: utils.centsToDollars(response.net),
         start: response.start,
         end: response.end,
