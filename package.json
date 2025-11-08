@@ -1,0 +1,14 @@
+{
+  "name": "regulation-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "api/sdk/js"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:sdk": "npm run build --workspace=@generated/js",
+    "build:frontend": "npm run build --workspace=frontend"
+  }
+}

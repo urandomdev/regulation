@@ -134,3 +134,30 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+### Node.js / Frontend template
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+
+# Misc
+*.local
+.DS_Store
+
+# Frontend cache
+frontend/.vite/
