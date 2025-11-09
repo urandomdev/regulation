@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter frontend dev",
     "dev:frontend": "pnpm --filter frontend dev",
-    "build": "pnpm --filter frontend build",
+    "build": "pnpm --filter @urandomdev/regulation build && pnpm --filter frontend build",
     "build:frontend": "pnpm --filter frontend build",
     "build:sdk": "pnpm --filter @urandomdev/regulation build",
     "lint": "pnpm --filter frontend lint",
