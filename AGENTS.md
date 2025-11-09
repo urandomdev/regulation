@@ -1,4 +1,4 @@
-# Repository GuidelinesSSS
+# Repository GuidelinesSSSS
 
 ## Project Structure & Module Organization
 - `api/` is the Go service: `cmd/regulation` contains the entrypoint, `internal/` holds domain packages, `server/` wires Fiber transport, and `sdk/` plus `sdk/js` surface generated clients.  
