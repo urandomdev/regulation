@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && echo '/assets/*   /assets/:splat   200\n/*   /index.html   200' > dist/_redirects",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

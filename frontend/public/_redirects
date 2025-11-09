@@ -1,0 +1,17 @@
+# Cloudflare Pages _redirects for SPA
+# Status code 200 = rewrite (serve different content, keep URL)
+
+# Serve static assets as-is
+/assets/*  /assets/:splat  200
+
+# SPA fallback - all other routes serve index.html
+# NOTE: /index.html itself is served directly, not through this rule
+# Cloudflare serves files first, then checks redirects
+/login  /index.html  200
+/signup  /index.html  200
+/dashboard  /index.html  200
+/accounts  /index.html  200
+/accounts/*  /index.html  200
+/rules  /index.html  200
+/recommendations  /index.html  200
+/onboarding  /index.html  200

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -16,8 +17,10 @@ import (
 
 const (
 	modelName          = shared.ChatModelGPT5Mini
-	defaultWorkerCount = 5  // Default number of concurrent workers
-	maxWorkerCount     = 20 // Maximum concurrent workers
+	defaultWorkerCount = 5                      // Default number of concurrent workers
+	maxWorkerCount     = 20                     // Maximum concurrent workers
+	defaultMaxRetries  = 3                      // Default number of retry attempts
+	retryDelay         = 500 * time.Millisecond // Delay between retries
 )
 
 // Service handles transaction categorization using GPT-5-mini
@@ -25,11 +28,13 @@ type Service struct {
 	client      *openai.Client
 	configured  bool
 	workerCount int
+	maxRetries  int
 }
 
 type serviceOptions struct {
 	requestOptions []option.RequestOption
 	workerCount    int
+	maxRetries     int
 }
 
 // Option configures the Service
@@ -62,12 +67,22 @@ func WithWorkerCount(count int) Option {
 	}
 }
 
+// WithMaxRetries sets the maximum number of retry attempts for failed categorizations
+func WithMaxRetries(retries int) Option {
+	return func(opts *serviceOptions) {
+		if retries >= 0 {
+			opts.maxRetries = retries
+		}
+	}
+}
+
 // NewService constructs a new categorization Service
 func NewService(apiKey string, opts ...Option) *Service {
 	cleanKey := strings.TrimSpace(apiKey)
 
 	var cfg serviceOptions
 	cfg.workerCount = defaultWorkerCount // Set default
+	cfg.maxRetries = defaultMaxRetries   // Set default
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -84,6 +99,7 @@ func NewService(apiKey string, opts ...Option) *Service {
 		client:      &client,
 		configured:  cleanKey != "",
 		workerCount: cfg.workerCount,
+		maxRetries:  cfg.maxRetries,
 	}
 }
 
@@ -102,7 +118,7 @@ type CategorizationResponse struct {
 	Reasoning  string       `json:"reasoning"`
 }
 
-// Categorize uses GPT-5-mini to categorize a transaction
+// Categorize uses GPT-5-mini to categorize a transaction with retry logic
 func (s *Service) Categorize(ctx context.Context, req *CategorizationRequest) (*CategorizationResponse, error) {
 	if !s.configured {
 		return nil, errors.New("categorizer service is not configured")
@@ -112,38 +128,56 @@ func (s *Service) Categorize(ctx context.Context, req *CategorizationRequest) (*
 		return nil, errors.New("request cannot be nil")
 	}
 
-	completion, err := s.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: modelName,
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
-			openai.UserMessage(buildUserPrompt(req)),
-		},
-		ReasoningEffort: shared.ReasoningEffortMinimal,
-		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
-			OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
-				JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
-					Name:   "transaction_category",
-					Strict: openai.Bool(true),
-					Schema: categorizationSchema(),
+	var lastErr error
+	for attempt := 0; attempt <= s.maxRetries; attempt++ {
+		// Add delay for retries (but not on first attempt)
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(retryDelay * time.Duration(attempt)):
+				// Exponential backoff
+			}
+		}
+
+		completion, err := s.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: modelName,
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(systemPrompt),
+				openai.UserMessage(buildUserPrompt(req)),
+			},
+			ReasoningEffort: shared.ReasoningEffortMinimal,
+			ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
+				OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
+					JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
+						Name:   "transaction_category",
+						Strict: openai.Bool(true),
+						Schema: categorizationSchema(),
+					},
 				},
 			},
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("openai chat completion failed: %w", err)
+		})
+		if err != nil {
+			lastErr = fmt.Errorf("openai chat completion failed: %w", err)
+			continue // Retry
+		}
+
+		if len(completion.Choices) == 0 {
+			lastErr = errors.New("openai completion returned no choices")
+			continue // Retry
+		}
+
+		content := strings.TrimSpace(completion.Choices[0].Message.Content)
+		result, err := parseCategorizationResponse(content)
+		if err != nil {
+			lastErr = err
+			continue // Retry
+		}
+
+		return result, nil
 	}
 
-	if len(completion.Choices) == 0 {
-		return nil, errors.New("openai completion returned no choices")
-	}
-
-	content := strings.TrimSpace(completion.Choices[0].Message.Content)
-	result, err := parseCategorizationResponse(content)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return nil, fmt.Errorf("categorization failed after %d attempts: %w", s.maxRetries+1, lastErr)
 }
 
 const systemPrompt = `You are a financial transaction categorization assistant.
