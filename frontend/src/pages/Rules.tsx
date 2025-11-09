@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { UUID } from '@deltalaboratory/uuid'
 import { Plus, Trash2, Power, Edit2, Sparkles, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
