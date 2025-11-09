@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { UUID } from '@deltalaboratory/uuid'
 import { useNavigate } from 'react-router'
-import { CreditCard, Plus, ChevronRight } from 'lucide-react'
+import { CreditCard, Plus, ChevronRight, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { PlaidLinkButton } from '@/components/PlaidLink'
 import { PageShell, PageHeader, PageBody } from '@/components/layout/Page'
+import { Button } from '@/components/ui/button'
 
 interface Account {
   id: UUID
@@ -21,6 +22,7 @@ const Accounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const navigate = useNavigate()
 
   const fetchAccounts = async () => {
@@ -44,6 +46,12 @@ const Accounts = () => {
 
   const getAccountTypeLabel = (type: string) => {
     return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchAccounts()
+    setRefreshing(false)
   }
 
   if (loading) {
@@ -72,15 +80,25 @@ const Accounts = () => {
         title="Accounts"
         backTo="/dashboard"
         action={(
-          <PlaidLinkButton
-            variant="ghost"
-            size="sm"
-            className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
-            onSuccess={fetchAccounts}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </PlaidLinkButton>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <PlaidLinkButton
+              variant="ghost"
+              size="sm"
+              className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+              onSuccess={fetchAccounts}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </PlaidLinkButton>
+          </div>
         )}
       />
 

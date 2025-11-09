@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { UUID } from '@deltalaboratory/uuid'
+import { RefreshCw } from 'lucide-react'
 
 import { PageShell, PageHeader, PageBody, EmptyState } from '@/components/layout/Page'
 import { Card, CardContent } from '@/components/ui/card'
@@ -71,6 +72,7 @@ const Recommendations = () => {
   const [creatingIndex, setCreatingIndex] = useState<number | null>(null)
   const [completed, setCompleted] = useState<Record<number, boolean>>({})
   const [creationErrors, setCreationErrors] = useState<Record<number, string>>({})
+  const [refreshing, setRefreshing] = useState(false)
 
   const fetchRecommendations = async () => {
     setLoading(true)
@@ -191,9 +193,28 @@ const Recommendations = () => {
     fetchRecommendations()
   }, [])
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchRecommendations()
+    setRefreshing(false)
+  }
+
   return (
     <PageShell>
-      <PageHeader title="Personalized rule ideas" backTo="/dashboard" />
+      <PageHeader
+        title="Personalized rule ideas"
+        backTo="/dashboard"
+        action={(
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
+      />
 
       <PageBody className="space-y-4">
         <Card className="rounded-2xl border border-gray-100 shadow-sm">

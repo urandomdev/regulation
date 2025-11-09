@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UUID } from '@deltalaboratory/uuid'
-import { Plus, Trash2, Power, Edit2, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Power, Edit2, Sparkles, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,7 @@ const Rules = () => {
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -103,6 +104,12 @@ const Rules = () => {
     return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchData()
+    setRefreshing(false)
+  }
+
   if (loading) {
     return (
       <PageShell>
@@ -154,6 +161,14 @@ const Rules = () => {
         backTo="/dashboard"
         action={(
           <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
             <Button
               size="sm"
               variant="outline"

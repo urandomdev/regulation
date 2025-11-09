@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { UUID } from '@deltalaboratory/uuid'
 import { useParams } from 'react-router'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,7 @@ const AccountDetail = () => {
   const [transactionsLoading, setTransactionsLoading] = useState(false)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const fetchTransactions = useCallback(async (pageIndex: number) => {
     if (!accountId) return
@@ -151,6 +152,12 @@ const AccountDetail = () => {
     setPage((prev) => Math.max(prev - 1, 0))
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchTransactions(page)
+    setRefreshing(false)
+  }
+
   if (loading) {
     return (
       <PageShell>
@@ -183,7 +190,20 @@ const AccountDetail = () => {
 
   return (
     <PageShell>
-      <PageHeader title="Account Details" backTo="/accounts" />
+      <PageHeader
+        title="Account Details"
+        backTo="/accounts"
+        action={(
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleRefresh}
+            disabled={refreshing || transactionsLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
+      />
 
       <PageBody className="space-y-4">
         {/* Account Summary Card */}
