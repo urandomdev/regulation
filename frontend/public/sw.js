@@ -4,7 +4,7 @@ self.addEventListener('push', event => {
   }
 
   const payload = event.data.json()
-  const title = payload.title || 'Regulation update'
+  const title = payload.title || 'Kash Out update'
   const options = {
     body: payload.body || 'Open the app to see more details.',
     icon: payload.icon || '/vite.svg',

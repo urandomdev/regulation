@@ -1,6 +1,6 @@
 import { api } from '@/lib/api'
 
-const VAPID_KEY_CACHE_KEY = 'regulation:vapid'
+const VAPID_KEY_CACHE_KEY = 'kashout:vapid'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)

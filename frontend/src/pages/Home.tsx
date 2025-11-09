@@ -15,7 +15,7 @@ const features: Array<{ title: string; description: string; icon: LucideIcon }> 
   },
   {
     title: 'Bank-level guardrails',
-    description: 'Use Plaid Link to connect accounts securely. Regulation never stores your credentials.',
+    description: 'Use Plaid Link to connect accounts securely. Kash Out never stores your credentials.',
     icon: ShieldCheck,
   },
   {
@@ -37,7 +37,7 @@ const Home = () => {
       <PageBody className="max-w-2xl space-y-10 text-center">
         <div className="space-y-4">
           <p className="text-sm font-semibold uppercase tracking-wide text-teal-600">Who Are You To Spend?</p>
-          <h1 className="text-4xl font-bold text-neutral-900">Regulation</h1>
+          <h1 className="text-4xl font-bold text-neutral-900">Kash Out</h1>
           <p className="text-lg text-neutral-600">
             A rule-based personal finance companion that keeps your spending intentional and your savings on autopilot.
           </p>

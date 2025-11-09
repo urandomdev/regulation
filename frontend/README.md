@@ -1,6 +1,6 @@
-# Regulation Frontend
+# Kash Out Frontend
 
-React + TypeScript frontend for the Regulation personal finance app ("Who Are You To Spend?").
+React + TypeScript frontend for the Kash Out personal finance app ("Who Are You To Spend?").
 
 ## Tech Stack
 

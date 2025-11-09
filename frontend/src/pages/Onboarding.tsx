@@ -18,7 +18,7 @@ const steps = [
   },
   {
     title: 'Pick a savings target',
-    description: 'Tell Regulation how much you want to auto-save each month with smart rules.',
+    description: 'Tell Kash Out how much you want to auto-save each month with smart rules.',
     icon: Sparkles,
   },
   {
@@ -88,7 +88,7 @@ const Onboarding = () => {
           <CardContent className="space-y-4 p-5">
             <div className="space-y-2 text-center">
               <ShieldCheck className="mx-auto h-10 w-10 text-neutral-900" />
-              <h1 className="text-2xl font-semibold text-neutral-900">Kick off regulation</h1>
+              <h1 className="text-2xl font-semibold text-neutral-900">Kick off Kash Out</h1>
               <p className="text-sm text-neutral-500">
                 Link at least one bank or card account so we can start watching your transactions in real time.
               </p>
@@ -169,7 +169,7 @@ const Onboarding = () => {
 
         <EmptyState
           title="Need help connecting?"
-          description="Reach out to support@regulation.app and we’ll walk through your first sync together."
+          description="Reach out to support@kashout.app and we'll walk through your first sync together."
           action={(
             <Button variant="ghost" onClick={checkAccounts}>
               Refresh status
