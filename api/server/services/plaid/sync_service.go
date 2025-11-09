@@ -102,6 +102,15 @@ func (s *SyncService) SyncItemTransactions(ctx context.Context, itemID uuid.UUID
 			Msg("Transaction sync batch complete")
 	}
 
+	// Sync account balances after syncing all transactions
+	if err := s.syncAccountBalances(ctx, item.AccessToken); err != nil {
+		// Log but don't fail the whole sync if balance update fails
+		log.Error().
+			Err(err).
+			Str("item_id", itemID.String()).
+			Msg("Failed to sync account balances")
+	}
+
 	// Save the final cursor and mark success
 	if err := s.recordSyncSuccess(ctx, itemID, currentCursor); err != nil {
 		return totalSynced, fmt.Errorf("failed to update cursor: %w", err)
@@ -144,6 +153,10 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 		return nil
 	}
 
+	log.Info().
+		Int("transaction_count", len(transactions)).
+		Msg("[SYNC] Processing added transactions")
+
 	// Step 1: Build categorization requests for batch processing
 	requests := make([]*categorizer.CategorizationRequest, len(transactions))
 	for i, tx := range transactions {
@@ -191,6 +204,17 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 		}
 
 		category := categoryResp.Category
+
+		log.Info().
+			Str("transaction_id", tx.TransactionID).
+			Str("transaction_name", tx.Name).
+			Str("merchant_name", tx.MerchantName).
+			Str("assigned_category", string(category)).
+			Str("confidence", categoryResp.Confidence).
+			Strs("plaid_categories", tx.Categories).
+			Int64("amount_cents", tx.Amount).
+			Bool("pending", tx.Pending).
+			Msg("[SYNC] Categorized transaction")
 
 		// Upsert transaction
 		err = s.entClient.Transaction.
@@ -220,6 +244,13 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 
 		// NEW: Process rules for non-pending transactions
 		if !tx.Pending {
+			log.Info().
+				Str("transaction_id", tx.TransactionID).
+				Str("transaction_name", tx.Name).
+				Int64("amount", tx.Amount).
+				Str("category", string(category)).
+				Msg("[SYNC] Transaction is non-pending, triggering rule processing")
+
 			// Fetch the saved transaction entity
 			entTx, err := s.entClient.Transaction.
 				Query().
@@ -230,18 +261,31 @@ func (s *SyncService) processAddedTransactions(ctx context.Context, transactions
 				log.Error().
 					Err(err).
 					Str("transaction_id", tx.TransactionID).
-					Msg("Failed to fetch transaction for rule processing")
+					Msg("[SYNC] Failed to fetch transaction for rule processing")
 				continue
 			}
+
+			log.Debug().
+				Str("transaction_id", tx.TransactionID).
+				Str("ent_transaction_id", entTx.ID.String()).
+				Msg("[SYNC] Fetched transaction entity, calling rule engine")
 
 			// Evaluate and execute rules
 			if err := s.ruleEngine.ProcessTransaction(ctx, entTx); err != nil {
 				log.Error().
 					Err(err).
 					Str("transaction_id", tx.TransactionID).
-					Msg("Failed to process rules for transaction")
+					Msg("[SYNC] Failed to process rules for transaction")
 				// Don't fail the sync, just log and continue
+			} else {
+				log.Info().
+					Str("transaction_id", tx.TransactionID).
+					Msg("[SYNC] Successfully processed rules for transaction")
 			}
+		} else {
+			log.Debug().
+				Str("transaction_id", tx.TransactionID).
+				Msg("[SYNC] Transaction is pending, skipping rule processing")
 		}
 	}
 
@@ -253,6 +297,10 @@ func (s *SyncService) processModifiedTransactions(ctx context.Context, transacti
 	if len(transactions) == 0 {
 		return nil
 	}
+
+	log.Info().
+		Int("transaction_count", len(transactions)).
+		Msg("[SYNC] Processing modified transactions")
 
 	// Step 1: Build categorization requests for batch processing
 	requests := make([]*categorizer.CategorizationRequest, len(transactions))
@@ -302,6 +350,17 @@ func (s *SyncService) processModifiedTransactions(ctx context.Context, transacti
 
 		category := categoryResp.Category
 
+		log.Info().
+			Str("transaction_id", tx.TransactionID).
+			Str("transaction_name", tx.Name).
+			Str("merchant_name", tx.MerchantName).
+			Str("assigned_category", string(category)).
+			Str("confidence", categoryResp.Confidence).
+			Strs("plaid_categories", tx.Categories).
+			Int64("amount_cents", tx.Amount).
+			Bool("pending", tx.Pending).
+			Msg("[SYNC] Categorized modified transaction")
+
 		// Update existing transaction
 		err = s.entClient.Transaction.
 			Update().
@@ -323,6 +382,53 @@ func (s *SyncService) processModifiedTransactions(ctx context.Context, transacti
 				Str("transaction_id", tx.TransactionID).
 				Msg("Failed to update transaction")
 			continue
+		}
+
+		// Process rules for non-pending transactions
+		// This is critical for when transactions change from pending to non-pending
+		if !tx.Pending {
+			log.Info().
+				Str("transaction_id", tx.TransactionID).
+				Str("transaction_name", tx.Name).
+				Int64("amount", tx.Amount).
+				Str("category", string(category)).
+				Msg("[SYNC] Modified transaction is non-pending, triggering rule processing")
+
+			// Fetch the updated transaction entity
+			entTx, err := s.entClient.Transaction.
+				Query().
+				Where(enttransaction.PlaidID(tx.TransactionID)).
+				Only(ctx)
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Str("transaction_id", tx.TransactionID).
+					Msg("[SYNC] Failed to fetch transaction for rule processing")
+				continue
+			}
+
+			log.Debug().
+				Str("transaction_id", tx.TransactionID).
+				Str("ent_transaction_id", entTx.ID.String()).
+				Msg("[SYNC] Fetched modified transaction entity, calling rule engine")
+
+			// Evaluate and execute rules
+			if err := s.ruleEngine.ProcessTransaction(ctx, entTx); err != nil {
+				log.Error().
+					Err(err).
+					Str("transaction_id", tx.TransactionID).
+					Msg("[SYNC] Failed to process rules for modified transaction")
+				// Don't fail the sync, just log and continue
+			} else {
+				log.Info().
+					Str("transaction_id", tx.TransactionID).
+					Msg("[SYNC] Successfully processed rules for modified transaction")
+			}
+		} else {
+			log.Debug().
+				Str("transaction_id", tx.TransactionID).
+				Msg("[SYNC] Modified transaction is pending, skipping rule processing")
 		}
 	}
 
@@ -526,4 +632,39 @@ func fallbackCategorize(plaidCategories []string) categorizer.CategoryType {
 	default:
 		return categorizer.CategoryMisc
 	}
+}
+
+// syncAccountBalances fetches and updates account balances from Plaid
+func (s *SyncService) syncAccountBalances(ctx context.Context, accessToken string) error {
+	// Get accounts from Plaid with current balances
+	accounts, err := s.plaidClient.GetAccounts(ctx, accessToken)
+	if err != nil {
+		return fmt.Errorf("failed to get accounts from Plaid: %w", err)
+	}
+
+	// Update each account's balance in the database
+	for _, acc := range accounts {
+		err := s.entClient.Account.
+			Update().
+			Where(entaccount.PlaidID(acc.AccountID)).
+			SetCurrentBalance(acc.BalanceCurrent).
+			SetNillableAvailableBalance(acc.BalanceAvailable).
+			Exec(ctx)
+
+		if err != nil {
+			log.Error().
+				Err(err).
+				Str("account_id", acc.AccountID).
+				Msg("Failed to update account balance")
+			// Continue with other accounts even if one fails
+			continue
+		}
+
+		log.Debug().
+			Str("account_id", acc.AccountID).
+			Int64("current_balance", acc.BalanceCurrent).
+			Msg("Account balance updated")
+	}
+
+	return nil
 }

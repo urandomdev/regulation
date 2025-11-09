@@ -19,6 +19,7 @@ import (
 	"github.com/redis/rueidis"
 	"github.com/redis/rueidis/rueidislock"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -94,6 +95,8 @@ func (s *Server) init(ctx context.Context) error {
 		Out:        os.Stderr,
 		TimeFormat: "2006-01-02 15:04:05 MST",
 	})
+
+	log.Logger = s.logger
 
 	s.cache = s.config.Redis.Client()
 	s.cacheLock, err = rueidislock.NewLocker(rueidislock.LockerOption{
