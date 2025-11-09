@@ -77,6 +77,7 @@ func SetSessionCookie(ctx fiber.Ctx, sessionID string) {
 		HTTPOnly: true,
 		Secure:   true, // Set to true in production with HTTPS
 		SameSite: fiber.CookieSameSiteStrictMode,
+		Domain:   "kashout.deltalab.dev",
 		MaxAge:   86400, // 24 hours in seconds
 	})
 }
@@ -90,6 +91,7 @@ func ClearSessionCookie(ctx fiber.Ctx) {
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: fiber.CookieSameSiteStrictMode,
+		Domain:   "kashout.deltalab.dev",
 		MaxAge:   -1, // Expire immediately
 	})
 }
